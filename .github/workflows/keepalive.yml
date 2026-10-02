@@ -1,0 +1,22 @@
+name: Microsoft 365 E5 Keep-Alive & Auto-Renewal
+
+on:
+  schedule:
+    # Runs every 2 hours automatically
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  keepalive:
+    name: Ping Dashboard & Trigger Graph API Renewal Cycle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Keep-Alive Pulse
+        run: |
+          TARGET_URL="${{ secrets.DEPLOYED_APP_URL }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="https://checkms365.onrender.com"
+          fi
+          
+          echo "Pinging E5 Renewal endpoint: ${TARGET_URL}/api/keep-alive"
+          curl -s -f -m 60 "${TARGET_URL}/api/keep-alive" || echo "Ping triggered or server waking up."
