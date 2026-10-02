@@ -363,10 +363,17 @@ function renderTable() {
             </span>
         `;
 
-        // Application tags
-        const appsPills = (user.appsUsed && user.appsUsed.length > 0)
-            ? user.appsUsed.map(app => renderAppPill(app)).join('')
-            : '<span class="sf-label-tertiary" style="font-size:0.75rem;">None recorded</span>';
+        // Application tags (Compact top 3 + remainder counter)
+        let appsPills = '<span class="sf-label-tertiary" style="font-size:0.75rem;">None recorded</span>';
+        if (user.appsUsed && user.appsUsed.length > 0) {
+            const displayLimit = 3;
+            const shownApps = user.appsUsed.slice(0, displayLimit);
+            const remainingCount = user.appsUsed.length - displayLimit;
+            appsPills = shownApps.map(app => renderAppPill(app)).join('');
+            if (remainingCount > 0) {
+                appsPills += `<span class="sf-app-pill more" title="${escapeHtml(user.appsUsed.slice(displayLimit).join(', '))}">+${remainingCount} more</span>`;
+            }
+        }
 
         // Latest Timestamp
         const timeObj = formatTimestamp(user.latestTimestamp);
@@ -415,9 +422,15 @@ function renderAppPill(appName) {
     else if (lower.includes('outlook')) styleClass = 'outlook';
     else if (lower.includes('sharepoint')) styleClass = 'sharepoint';
     else if (lower.includes('onedrive')) styleClass = 'onedrive';
+    else if (lower.includes('teams')) styleClass = 'teams';
+    else if (lower.includes('chatgpt') || lower.includes('copilot') || lower.includes('openai')) styleClass = 'chatgpt';
+    else if (lower.includes('security') || lower.includes('compliance')) styleClass = 'security';
+    else if (lower.includes('power') || lower.includes('flow')) styleClass = 'power';
+    else if (lower.includes('azure') || lower.includes('graph')) styleClass = 'azure';
     else if (lower.includes('admin') || lower.includes('portal')) styleClass = 'admin';
+    else if (lower.includes('broker') || lower.includes('device') || lower.includes('registration')) styleClass = 'device';
 
-    return `<span class="sf-app-pill ${styleClass}">${escapeHtml(appName)}</span>`;
+    return `<span class="sf-app-pill ${styleClass}" title="${escapeHtml(appName)}">${escapeHtml(appName)}</span>`;
 }
 
 function renderTableError(msg) {
@@ -468,7 +481,14 @@ function renderModal() {
                 <div class="sf-timeline-item">
                     <div class="sf-timeline-left">
                         <span class="sf-timeline-app">${escapeHtml(ev.app)}</span>
-                        <span class="sf-timeline-meta">${escapeHtml(ev.rawApp)} • ${escapeHtml(ev.os)} (${escapeHtml(ev.browser)})</span>
+                        <span class="sf-timeline-meta">
+                            <strong>${escapeHtml(ev.clientApp)}</strong>
+                            ${ev.resource && ev.resource !== ev.app ? ` • Resource: ${escapeHtml(ev.resource)}` : ''}
+                            • ${escapeHtml(ev.os)}${ev.browser ? ` (${escapeHtml(ev.browser)})` : ''}
+                            ${ev.ipAddress ? ` • IP: ${escapeHtml(ev.ipAddress)}` : ''}
+                            • ${escapeHtml(ev.location)}
+                            • <span style="color: ${ev.status === 'Success' ? '#248a3d' : '#d70015'}; font-weight: 600;">${escapeHtml(ev.status)}</span>
+                        </span>
                     </div>
                     <div class="sf-timeline-right">
                         <span class="sf-timeline-time">${evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>

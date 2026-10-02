@@ -52,26 +52,16 @@ async function getAccessToken() {
 }
 
 /**
- * Map raw app display names to clean, recognizable M365 application labels
+ * Return genuine Microsoft application name without artificial modification
  */
-function normalizeApplicationName(rawName) {
-    if (!rawName) return 'Microsoft 365 Service';
-    const lower = rawName.toLowerCase();
-
-    if (lower.includes('word')) return 'Word';
-    if (lower.includes('excel')) return 'Excel';
-    if (lower.includes('powerpoint')) return 'PowerPoint';
-    if (lower.includes('outlook')) return 'Outlook';
-    if (lower.includes('onedrive')) return 'OneDrive';
-    if (lower.includes('sharepoint')) return 'SharePoint';
-    if (lower.includes('teams')) return 'Teams';
-    if (lower.includes('chatgpt')) return 'ChatGPT / Copilot';
-    if (lower.includes('admin') || lower.includes('portal') || lower.includes('management shell')) return 'Admin Center';
-    if (lower.includes('office') || lower.includes('wcss') || lower.includes('officehome')) return 'Office (Word/Excel/Docs)';
-    if (lower.includes('flow') || lower.includes('power platform')) return 'Power Automate';
-    if (lower.includes('graph')) return 'Graph CLI / API Tool';
-
-    return rawName;
+function cleanApplicationName(rawName, resourceName) {
+    if (rawName && rawName.trim()) {
+        return rawName.trim();
+    }
+    if (resourceName && resourceName.trim()) {
+        return resourceName.trim();
+    }
+    return 'Microsoft 365 Service';
 }
 
 /**
@@ -122,9 +112,15 @@ app.get('/api/users/activity', async (req, res) => {
             if (cachedSignIns && signInsExpiry > now) {
                 signIns = cachedSignIns;
             } else {
-                const signInsUrl = 'https://graph.microsoft.com/v1.0/auditLogs/signIns?$top=150';
-                const signInsRes = await axios.get(signInsUrl, { headers, timeout: 30000 });
-                signIns = signInsRes.data.value || [];
+                let currentUrl = 'https://graph.microsoft.com/v1.0/auditLogs/signIns?$top=500';
+                const fetched = [];
+                while (currentUrl && fetched.length < 2500) {
+                    const signInsRes = await axios.get(currentUrl, { headers, timeout: 35000 });
+                    const pageData = signInsRes.data.value || [];
+                    fetched.push(...pageData);
+                    currentUrl = signInsRes.data['@odata.nextLink'] || null;
+                }
+                signIns = fetched;
                 cachedSignIns = signIns;
                 signInsExpiry = now + 60; // 60 seconds TTL
             }
@@ -145,19 +141,20 @@ app.get('/api/users/activity', async (req, res) => {
 
                 userAccessMap[upn].monthlyAccessCount++;
 
-                const cleanApp = normalizeApplicationName(entry.appDisplayName);
+                const cleanApp = cleanApplicationName(entry.appDisplayName, entry.resourceDisplayName);
                 userAccessMap[upn].appsSet.add(cleanApp);
 
-                if (userAccessMap[upn].events.length < 15) {
+                if (userAccessMap[upn].events.length < 30) {
                     userAccessMap[upn].events.push({
                         id: entry.id,
                         app: cleanApp,
-                        rawApp: entry.appDisplayName || 'Unknown Application',
+                        rawApp: entry.appDisplayName || entry.resourceDisplayName || 'Microsoft 365 Service',
+                        resource: entry.resourceDisplayName || '',
                         timestamp: entry.createdDateTime,
-                        clientApp: entry.clientAppUsed || 'Web / Desktop',
+                        clientApp: entry.clientAppUsed || 'Desktop / Browser',
                         os: entry.deviceDetail?.operatingSystem || 'Unknown OS',
                         browser: entry.deviceDetail?.browser || 'Browser',
-                        location: entry.location?.countryOrRegion || 'VN',
+                        location: entry.location?.city ? `${entry.location.city}, ${entry.location.countryOrRegion}` : (entry.location?.countryOrRegion || 'VN'),
                         ipAddress: entry.ipAddress || '',
                         status: entry.status?.errorCode === 0 ? 'Success' : 'Failed'
                     });

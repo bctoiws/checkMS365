@@ -664,7 +664,14 @@ body {
 .sf-app-pill.outlook { background: rgba(2, 136, 209, 0.1); color: #0277bd; }
 .sf-app-pill.sharepoint { background: rgba(0, 150, 136, 0.1); color: #00796b; }
 .sf-app-pill.onedrive { background: rgba(3, 169, 244, 0.1); color: #0288d1; }
+.sf-app-pill.teams { background: rgba(98, 100, 167, 0.12); color: #505294; }
+.sf-app-pill.chatgpt { background: rgba(16, 163, 127, 0.12); color: #0f8366; }
+.sf-app-pill.azure { background: rgba(0, 120, 212, 0.1); color: #0063b1; }
 .sf-app-pill.admin { background: rgba(175, 82, 222, 0.1); color: #8e24aa; }
+.sf-app-pill.security { background: rgba(216, 59, 1, 0.1); color: #ba3200; }
+.sf-app-pill.power { background: rgba(116, 39, 116, 0.1); color: #6a246a; }
+.sf-app-pill.device { background: rgba(100, 116, 139, 0.1); color: #475569; }
+.sf-app-pill.more { background: var(--sf-fill-tertiary); color: var(--sf-label-tertiary); font-weight: 500; cursor: default; }
 
 /* Timestamp cell */
 .sf-time-cell {
