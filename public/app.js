@@ -159,7 +159,7 @@ function setupEventHandlers() {
     const segmentContainer = document.getElementById('segmentedFilter');
     if (segmentContainer) {
         segmentContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('.sf-segment');
+            const btn = e.target.closest('.segment-btn, .sf-segment');
             if (!btn) return;
             const targetFilter = btn.getAttribute('data-filter');
             if (targetFilter) AppState.setFilter(targetFilter);
@@ -362,7 +362,7 @@ function updateSegmentCounts() {
 }
 
 function renderSegmentedControls() {
-    const buttons = document.querySelectorAll('#segmentedFilter .sf-segment');
+    const buttons = document.querySelectorAll('#segmentedFilter .segment-btn, #segmentedFilter .sf-segment');
     buttons.forEach(btn => {
         const f = btn.getAttribute('data-filter');
         const isActive = f === AppState.filter;

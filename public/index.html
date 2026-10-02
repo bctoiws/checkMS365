@@ -3,145 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microsoft 365 User Access & Application Governance</title>
+    <title>Microsoft 365 Tenant Activity Monitor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Apple Glassmorphic Header -->
-    <header class="sf-nav" role="banner">
-        <div class="sf-nav-container">
-            <div class="sf-brand">
-                <div class="sf-brand-badge" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                    </svg>
-                </div>
-                <div class="sf-brand-meta">
-                    <h1 id="appTitle">Microsoft 365 Access Monitor</h1>
-                    <span class="sf-tenant-tag" id="tenantBadge">bct0902.onmicrosoft.com</span>
-                </div>
+    <!-- Apple Unified Navigation Bar -->
+    <header class="app-header">
+        <div class="header-left">
+            <span class="app-title">Microsoft 365 Monitor</span>
+            <span class="tenant-badge" id="tenantBadge">bct0902.onmicrosoft.com</span>
+        </div>
+
+        <div class="header-right">
+            <!-- Compact E5 Keep-Alive Status -->
+            <div class="e5-status-pill">
+                <span class="status-dot green"></span>
+                <span class="e5-label" id="e5StatusBadge">E5 Keep-Alive Active</span>
+                <span class="e5-detail" id="e5CallsToday">0 calls</span>
+                <span class="e5-next" id="e5NextRun">Next: --</span>
+                <button type="button" class="btn-ghost-compact" id="btnTriggerKeepAlive" title="Run Keep-Alive Cycle Now">Run</button>
+                <button type="button" class="btn-ghost-compact" id="btnViewE5Logs" title="View Telemetry Log">Log</button>
             </div>
 
-            <div class="sf-nav-actions">
-                <div class="sf-live-badge" aria-label="Realtime Monitoring Active">
-                    <span class="sf-pulse-dot"></span>
-                    <span class="sf-live-caption">Live Telemetry</span>
-                </div>
+            <div class="header-divider"></div>
 
-                <div class="sf-divider" aria-hidden="true"></div>
+            <!-- Auto-refresh and manual refresh -->
+            <div class="refresh-controls">
+                <select id="autoRefreshInterval" class="select-compact" title="Auto-refresh interval">
+                    <option value="15000">15s</option>
+                    <option value="30000" selected>30s</option>
+                    <option value="60000">1m</option>
+                    <option value="0">Off</option>
+                </select>
 
-                <div class="sf-control-item">
-                    <label for="autoRefreshInterval" class="sr-only">Refresh Frequency</label>
-                    <select id="autoRefreshInterval" class="sf-select" title="Auto Refresh Frequency">
-                        <option value="15000">Every 15s</option>
-                        <option value="30000" selected>Every 30s</option>
-                        <option value="60000">Every 1m</option>
-                        <option value="0">Manual Only</option>
-                    </select>
-                </div>
-
-                <button id="btnManualRefresh" class="sf-button sf-button-secondary" aria-label="Refresh Data">
-                    <svg class="sf-icon" id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" class="btn-icon" id="btnManualRefresh" title="Refresh Now" aria-label="Refresh Data">
+                    <svg id="refreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                     </svg>
-                    <span>Refresh</span>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- Main Workspace -->
-    <main class="sf-viewport" role="main">
-        <!-- Hero Header -->
-        <header class="sf-hero">
-            <div class="sf-hero-content">
-                <p class="sf-eyebrow">Enterprise Identity &amp; Application Auditing</p>
-                <h2 class="sf-headline">User Activity &amp; Monthly Access Governance</h2>
-                <p class="sf-description">Track authenticated applications (Word, Excel, Outlook, SharePoint), exact usage timestamps, and monthly session frequencies.</p>
+    <main class="app-main">
+        <!-- Compact Metric Toolbar Strip -->
+        <section class="summary-strip">
+            <div class="summary-item">
+                <span class="summary-num" id="val-total">--</span>
+                <span class="summary-lbl">Accounts</span>
             </div>
-            <div class="sf-hero-timestamp" id="lastUpdatedContainer">
-                <span class="sf-label-dim">Last synced:</span>
-                <time id="lastSyncTime" class="sf-timestamp-value">--:--:--</time>
+            <div class="summary-divider"></div>
+            <div class="summary-item">
+                <span class="summary-num" id="val-activeUsers">--</span>
+                <span class="summary-lbl">Active This Month</span>
             </div>
-        </header>
-
-        <!-- E5 Developer Auto-Renewal Keep-Alive Banner (Apple Card Style) -->
-        <section class="sf-e5-banner" aria-label="E5 Developer Subscription Keep-Alive Status">
-            <div class="sf-e5-left">
-                <div class="sf-e5-status-icon">
-                    <span class="sf-pulse-dot"></span>
-                </div>
-                <div class="sf-e5-info">
-                    <div class="sf-e5-title-row">
-                        <span class="sf-e5-title">E5 Developer Auto-Renewal Engine</span>
-                        <span class="sf-badge e5-active" id="e5StatusBadge">Active (Continuous)</span>
-                    </div>
-                    <p class="sf-e5-sub">
-                        Automated Keep-Alive cycles calling Microsoft Graph across 7 services simulating active developer workloads to guarantee 90-day subscription renewals.
-                    </p>
-                </div>
+            <div class="summary-divider"></div>
+            <div class="summary-item">
+                <span class="summary-num" id="val-monthlyAccesses">--</span>
+                <span class="summary-lbl">Monthly Sessions</span>
             </div>
-
-            <div class="sf-e5-metrics">
-                <div class="sf-e5-stat">
-                    <span class="sf-e5-stat-label">Calls Today</span>
-                    <span class="sf-e5-stat-value" id="e5CallsToday">0</span>
-                </div>
-                <div class="sf-e5-divider"></div>
-                <div class="sf-e5-stat">
-                    <span class="sf-e5-stat-label">Next Scheduled Pulse</span>
-                    <span class="sf-e5-stat-value" id="e5NextRun">Calculating...</span>
-                </div>
-                <div class="sf-e5-divider"></div>
-                <div class="sf-e5-stat">
-                    <span class="sf-e5-stat-label">Last Status</span>
-                    <span class="sf-e5-stat-value success" id="e5LastStatus">Standby</span>
-                </div>
+            <div class="summary-divider"></div>
+            <div class="summary-item">
+                <span class="summary-num" id="val-dormant">--</span>
+                <span class="summary-lbl">Inactive</span>
             </div>
-
-            <div class="sf-e5-actions">
-                <button type="button" class="sf-btn-primary-compact" id="btnTriggerKeepAlive" title="Execute a live Microsoft Graph API keep-alive cycle now">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    <span>Run Cycle Now</span>
-                </button>
-                <button type="button" class="sf-btn-secondary-compact" id="btnViewE5Logs" title="View detailed keep-alive execution history">
-                    <span>Telemetry Log</span>
-                </button>
+            <div class="summary-spacer"></div>
+            <div class="summary-meta">
+                <span>Updated:</span>
+                <time id="lastSyncTime">--:--:--</time>
             </div>
         </section>
 
-        <!-- KPI Metrics Grid (Apple Card Design) -->
-        <section class="sf-metrics-grid" aria-label="Key Performance Indicators" id="metricsSection">
-            <!-- Dynamically populated via app.js -->
-        </section>
-
-        <!-- Data Panel & Filter Controls -->
-        <section class="sf-panel" aria-label="User Access Records">
-            <div class="sf-panel-header">
-                <!-- Apple Segmented Control -->
-                <div class="sf-segmented-control" role="tablist" id="segmentedFilter">
-                    <button role="tab" class="sf-segment active" data-filter="all" aria-selected="true">All Members (<span id="countAll">0</span>)</button>
-                    <button role="tab" class="sf-segment" data-filter="frequent" aria-selected="false">Frequent Users (<span id="countFrequent">0</span>)</button>
-                    <button role="tab" class="sf-segment" data-filter="admin" aria-selected="false">Administrators (<span id="countAdmin">0</span>)</button>
-                    <button role="tab" class="sf-segment" data-filter="dormant" aria-selected="false">Inactive / Review (<span id="countDormant">0</span>)</button>
+        <!-- Primary Table Container -->
+        <section class="table-card">
+            <!-- Toolbar: Filters, Search, Sort, Export -->
+            <div class="toolbar">
+                <div class="segmented-control" role="tablist" id="segmentedFilter">
+                    <button type="button" role="tab" class="segment-btn active" data-filter="all" aria-selected="true">All (<span id="countAll">0</span>)</button>
+                    <button type="button" role="tab" class="segment-btn" data-filter="frequent" aria-selected="false">Frequent (<span id="countFrequent">0</span>)</button>
+                    <button type="button" role="tab" class="segment-btn" data-filter="admin" aria-selected="false">Admins (<span id="countAdmin">0</span>)</button>
+                    <button type="button" role="tab" class="segment-btn" data-filter="dormant" aria-selected="false">Inactive (<span id="countDormant">0</span>)</button>
                 </div>
 
-                <!-- Search & Export Tools -->
-                <div class="sf-panel-tools">
-                    <div class="sf-search-field">
-                        <svg class="sf-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="toolbar-tools">
+                    <div class="search-box">
+                        <svg class="search-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        <input type="search" id="userSearchInput" placeholder="Filter by name, email, app (Word, Excel)..." autocomplete="off" spellcheck="false">
-                        <button type="button" id="searchClearBtn" class="sf-search-clear" aria-label="Clear Search" hidden>&times;</button>
+                        <input type="search" id="userSearchInput" placeholder="Filter members..." autocomplete="off" spellcheck="false">
+                        <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Clear Search" hidden>&times;</button>
                     </div>
 
-                    <div class="sf-sort-wrapper">
-                        <label for="tableSortSelect" class="sf-sort-label">Sort:</label>
-                        <select id="tableSortSelect" class="sf-select sf-sort-select" aria-label="Sort users table">
+                    <div class="sort-control">
+                        <label for="tableSortSelect" class="sr-only">Sort by</label>
+                        <select id="tableSortSelect" class="select-compact sort-select" aria-label="Sort users table">
                             <option value="access_desc" selected>Logins: High → Low</option>
                             <option value="access_asc">Logins: Low → High</option>
                             <option value="name_asc">Name: A → Z</option>
@@ -151,8 +108,8 @@
                         </select>
                     </div>
 
-                    <button id="btnExportCsv" class="sf-button sf-button-secondary" title="Export dataset as CSV">
-                        <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button type="button" id="btnExportCsv" class="btn-secondary" title="Export as CSV">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -162,29 +119,29 @@
                 </div>
             </div>
 
-            <!-- Table Component -->
-            <div class="sf-table-wrapper">
-                <table class="sf-table" aria-label="User Access Activity Table">
+            <!-- Table -->
+            <div class="table-scroll">
+                <table class="data-table" aria-label="User Access Activity Table">
                     <thead>
                         <tr>
-                            <th scope="col" class="th-user sf-sortable" data-sort="name" title="Click to sort by Name (A-Z / Z-A)">
-                                <span class="sf-th-inner">
-                                    <span>Member &amp; Role</span>
-                                    <span class="sf-sort-indicator"></span>
+                            <th scope="col" class="th-member sf-sortable" data-sort="name">
+                                <span class="th-content">
+                                    <span>Member</span>
+                                    <span class="sort-arrow"></span>
                                 </span>
                             </th>
                             <th scope="col" class="th-upn">Account UPN</th>
-                            <th scope="col" class="th-count sf-sortable active desc" data-sort="access" title="Click to sort by Monthly Access Count (High / Low)">
-                                <span class="sf-th-inner">
+                            <th scope="col" class="th-count sf-sortable active desc" data-sort="access">
+                                <span class="th-content">
                                     <span>Monthly Accesses</span>
-                                    <span class="sf-sort-indicator"></span>
+                                    <span class="sort-arrow"></span>
                                 </span>
                             </th>
                             <th scope="col" class="th-apps">Applications Used</th>
-                            <th scope="col" class="th-time sf-sortable" data-sort="time" title="Click to sort by Latest Sign-in Timestamp">
-                                <span class="sf-th-inner">
-                                    <span>Latest Sign-in Time</span>
-                                    <span class="sf-sort-indicator"></span>
+                            <th scope="col" class="th-time sf-sortable" data-sort="time">
+                                <span class="th-content">
+                                    <span>Latest Sign-in</span>
+                                    <span class="sort-arrow"></span>
                                 </span>
                             </th>
                             <th scope="col" class="th-action">Audit Log</th>
@@ -192,75 +149,50 @@
                     </thead>
                     <tbody id="userTableBody">
                         <tr>
-                            <td colspan="6" class="sf-table-empty">
-                                <div class="sf-skeleton-loader"></div>
-                                <p>Querying telemetry from Microsoft Graph API...</p>
+                            <td colspan="6" class="table-loading">
+                                <div class="loading-spinner"></div>
+                                <span>Loading tenant data from Microsoft Graph...</span>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Panel Footer -->
-            <footer class="sf-panel-footer">
+            <!-- Table Footer -->
+            <div class="table-footer">
                 <span id="tableSummaryText">Loading accounts...</span>
-                <span class="sf-legend-dot"></span>
-                <span>Auditing Scope: Sign-in events &amp; Application workloads (30 days)</span>
-            </footer>
+                <span class="footer-scope">Scope: 30-day Entra ID Telemetry</span>
+            </div>
         </section>
-
-        <!-- Compliance & Privacy Footnote -->
-        <footer class="sf-privacy-card">
-            <div class="sf-privacy-badge">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-            </div>
-            <div class="sf-privacy-text">
-                <h3>Data Governance &amp; Privacy Compliance</h3>
-                <p>This dashboard strictly inspects authentication telemetry (application client, login timestamps, and session counts) via Microsoft Graph Audit Logs. The platform <strong>never accesses, extracts, or inspects the contents</strong> of user spreadsheets, documents, or personal emails.</p>
-            </div>
-        </footer>
     </main>
 
-    <!-- Detail Sheet / Modal (Apple Modal Pattern) -->
-    <div id="detailModal" class="sf-modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="modalUserName">
-        <div class="sf-modal-card">
-            <header class="sf-modal-header">
+    <!-- Detail Sheet Modal (Apple HIG Style) -->
+    <div id="detailModal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="modalUserName">
+        <div class="modal-sheet">
+            <div class="modal-header">
                 <div>
-                    <h3 id="modalUserName" class="sf-modal-title">Access &amp; Application Log</h3>
-                    <p id="modalUserSubtitle" class="sf-modal-sub">Detailed session breakdown</p>
+                    <h2 id="modalUserName" class="modal-title">Access &amp; Application Log</h2>
+                    <p id="modalUserSubtitle" class="modal-sub">Account details</p>
                 </div>
-                <button type="button" class="sf-modal-close" id="modalCloseBtn" aria-label="Close dialog">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </header>
-            <div class="sf-modal-body" id="modalDetailsContainer">
+                <button type="button" class="btn-close" id="modalCloseBtn" aria-label="Close dialog">&times;</button>
+            </div>
+            <div class="modal-content" id="modalDetailsContainer">
                 <!-- Dynamically populated via app.js -->
             </div>
         </div>
     </div>
 
     <!-- E5 Telemetry & Renewal Log Modal -->
-    <div id="e5Modal" class="sf-modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="e5ModalTitle">
-        <div class="sf-modal-card">
-            <header class="sf-modal-header">
+    <div id="e5Modal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="e5ModalTitle">
+        <div class="modal-sheet">
+            <div class="modal-header">
                 <div>
-                    <h3 id="e5ModalTitle" class="sf-modal-title">E5 Developer Renewal Telemetry</h3>
-                    <p class="sf-modal-sub">Live audit trail of automated Graph API keep-alive cycles</p>
+                    <h2 id="e5ModalTitle" class="modal-title">E5 Developer Keep-Alive Telemetry</h2>
+                    <p class="modal-sub">Automated Microsoft Graph API renewal requests</p>
                 </div>
-                <button type="button" class="sf-modal-close" id="e5ModalCloseBtn" aria-label="Close dialog">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </header>
-            <div class="sf-modal-body" id="e5ModalBody">
+                <button type="button" class="btn-close" id="e5ModalCloseBtn" aria-label="Close dialog">&times;</button>
+            </div>
+            <div class="modal-content" id="e5ModalBody">
                 <!-- Dynamically populated via app.js -->
             </div>
         </div>
