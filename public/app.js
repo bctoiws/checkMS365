@@ -1,12 +1,13 @@
 /**
- * Microsoft 365 Identity & Activity Governance Dashboard
- * Architecture: Clean Reactive State • Zero Hardcoding • Apple Human Interface Guidelines
+ * Microsoft 365 User Access & Application Governance Dashboard
+ * Architecture: Clean Reactive State • Zero Hardcoding • Apple HIG Standards
+ * Language: English (International)
  */
 
 'use strict';
 
 // ==========================================================================
-// Centralized Configuration & Localized Schema (No Hardcoded Strings)
+// Centralized Configuration & Localized Schema (Zero Hardcoding)
 // ==========================================================================
 const CONFIG = {
     endpoints: {
@@ -14,68 +15,54 @@ const CONFIG = {
         configStatus: '/api/config-status'
     },
     thresholds: {
-        activeDays: 3,
-        moderateDays: 14,
-        idleDays: 30
+        frequentAccessCount: 10,
+        recentDays: 7,
+        dormantDays: 14
     },
     defaultRefreshMs: 30000,
-    exportFilenamePrefix: 'M365_Activity_Report_'
+    exportFilenamePrefix: 'M365_Access_Audit_'
 };
 
 const I18N = {
     metrics: [
         {
             id: 'total',
-            label: 'Tổng Tài Khoản Cấp Phát',
+            label: 'Total Accounts',
             icon: 'blue',
             svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
-            sub: 'Toàn bộ giấy phép nội bộ'
+            sub: 'Licensed tenant identities'
         },
         {
-            id: 'admin',
-            label: 'Quản Trị Viên Toàn Cầu',
-            icon: 'purple',
-            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
-            sub: 'Quyền kiểm soát cao nhất (Global Admin)'
-        },
-        {
-            id: 'active',
-            label: 'Đang Hoạt Động (≤ 7 Ngày)',
+            id: 'activeUsers',
+            label: 'Active This Month',
             icon: 'green',
             svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>',
-            sub: 'Tài khoản có tương tác thường xuyên'
+            sub: 'Monthly Active Users (MAU)'
         },
         {
-            id: 'abandoned',
-            label: 'Cần Rà Soát (> 14 Ngày)',
+            id: 'monthlyAccesses',
+            label: 'Total Monthly Logins',
+            icon: 'purple',
+            svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+            sub: 'Recorded audit sessions (30d)'
+        },
+        {
+            id: 'dormant',
+            label: 'Inactive / Review',
             icon: 'orange',
             svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-            sub: 'Không phát sinh đăng nhập'
+            sub: 'No sign-ins for >14 days'
         }
     ],
-    tiers: {
-        active: { label: 'Tích cực', class: 'active', hint: 'Đăng nhập gần đây' },
-        moderate: { label: 'Thỉnh thoảng', class: 'moderate', hint: 'Trong 2 tuần' },
-        idle: { label: 'Ít dùng', class: 'idle', hint: '2 - 4 tuần' },
-        abandoned: { label: 'Cần lưu ý', class: 'abandoned', hint: '> 14 ngày hoặc chưa từng đăng nhập' }
-    },
     roles: {
-        admin: 'Quản trị viên (Global Admin)',
-        member: 'Thành viên tổ chức'
-    },
-    relativeTime: {
-        justNow: 'Vừa xong',
-        minutesAgo: 'phút trước',
-        hoursAgo: 'giờ trước',
-        yesterday: 'Hôm qua',
-        daysAgo: 'ngày trước',
-        never: 'Chưa từng đăng nhập'
+        admin: 'Global Administrator',
+        member: 'Staff Member'
     },
     table: {
-        showingPrefix: 'Đang hiển thị',
-        accounts: 'tài khoản',
-        noResults: 'Không tìm thấy tài khoản nào phù hợp với điều kiện lọc.',
-        serverError: 'Không thể kết nối đến Microsoft Graph API. Vui lòng kiểm tra lại dịch vụ.'
+        showingPrefix: 'Showing',
+        accounts: 'accounts',
+        noResults: 'No user accounts match your filter criteria.',
+        serverError: 'Unable to communicate with Microsoft Graph API. Please inspect connection.'
     }
 };
 
@@ -87,8 +74,9 @@ const AppState = {
     stats: {
         total: 0,
         adminCount: 0,
-        active7dCount: 0,
-        abandonedCount: 0
+        activeUsersCount: 0,
+        dormantCount: 0,
+        totalMonthlyAccesses: 0
     },
     filter: 'all',
     searchQuery: '',
@@ -114,7 +102,7 @@ const AppState = {
 };
 
 // ==========================================================================
-// Initialization & Event Listeners
+// Initialization & Event Binding
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initMetricsGrid();
@@ -140,19 +128,19 @@ function initMetricsGrid() {
 }
 
 function setupEventHandlers() {
-    // Manual refresh button
+    // Manual refresh
     const refreshBtn = document.getElementById('btnManualRefresh');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => fetchData(true));
     }
 
-    // Auto-refresh interval change
+    // Auto-refresh interval
     const intervalSelect = document.getElementById('autoRefreshInterval');
     if (intervalSelect) {
         intervalSelect.addEventListener('change', setupAutoRefresh);
     }
 
-    // Segmented control filters
+    // Segmented filters
     const segmentContainer = document.getElementById('segmentedFilter');
     if (segmentContainer) {
         segmentContainer.addEventListener('click', (e) => {
@@ -163,7 +151,7 @@ function setupEventHandlers() {
         });
     }
 
-    // Search input
+    // Search field
     const searchInput = document.getElementById('userSearchInput');
     const searchClear = document.getElementById('searchClearBtn');
     if (searchInput) {
@@ -191,7 +179,7 @@ function setupEventHandlers() {
         exportBtn.addEventListener('click', exportDatasetToCsv);
     }
 
-    // Detail modal interactions
+    // Modal dialog controls
     const modalBackdrop = document.getElementById('detailModal');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     if (modalCloseBtn) {
@@ -208,7 +196,7 @@ function setupEventHandlers() {
         }
     });
 
-    // Delegate table clicks for Detail Sheet
+    // Delegate row click for detail view
     const tableBody = document.getElementById('userTableBody');
     if (tableBody) {
         tableBody.addEventListener('click', (e) => {
@@ -271,35 +259,35 @@ async function fetchData(isManualTrigger = false) {
 }
 
 // ==========================================================================
-// Presentation Renderers (Apple Clean UI)
+// Presentation Renderers (Apple HIG)
 // ==========================================================================
 function updateMetricsValues() {
     const valTotal = document.getElementById('val-total');
-    const valAdmin = document.getElementById('val-admin');
-    const valActive = document.getElementById('val-active');
-    const valAbandoned = document.getElementById('val-abandoned');
+    const valActiveUsers = document.getElementById('val-activeUsers');
+    const valMonthlyAccesses = document.getElementById('val-monthlyAccesses');
+    const valDormant = document.getElementById('val-dormant');
 
     if (valTotal) valTotal.textContent = AppState.stats.total ?? 0;
-    if (valAdmin) valAdmin.textContent = AppState.stats.adminCount ?? 0;
-    if (valActive) valActive.textContent = AppState.stats.active7dCount ?? 0;
-    if (valAbandoned) valAbandoned.textContent = AppState.stats.abandonedCount ?? 0;
+    if (valActiveUsers) valActiveUsers.textContent = AppState.stats.activeUsersCount ?? 0;
+    if (valMonthlyAccesses) valMonthlyAccesses.textContent = AppState.stats.totalMonthlyAccesses ?? 0;
+    if (valDormant) valDormant.textContent = AppState.stats.dormantCount ?? 0;
 }
 
 function updateSegmentCounts() {
     const total = AppState.users.length;
-    const active = AppState.users.filter(u => u.diffDays !== null && u.diffDays <= 7).length;
+    const frequent = AppState.users.filter(u => u.monthlyAccessCount >= CONFIG.thresholds.frequentAccessCount).length;
     const admin = AppState.users.filter(u => u.isAdmin).length;
-    const abandoned = AppState.users.filter(u => u.diffDays === null || u.diffDays > 14).length;
+    const dormant = AppState.users.filter(u => u.usageCategory === 'dormant').length;
 
     const cAll = document.getElementById('countAll');
-    const cActive = document.getElementById('countActive');
+    const cFrequent = document.getElementById('countFrequent');
     const cAdmin = document.getElementById('countAdmin');
-    const cAbandoned = document.getElementById('countAbandoned');
+    const cDormant = document.getElementById('countDormant');
 
     if (cAll) cAll.textContent = total;
-    if (cActive) cActive.textContent = active;
+    if (cFrequent) cFrequent.textContent = frequent;
     if (cAdmin) cAdmin.textContent = admin;
-    if (cAbandoned) cAbandoned.textContent = abandoned;
+    if (cDormant) cDormant.textContent = dormant;
 }
 
 function renderSegmentedControls() {
@@ -317,33 +305,34 @@ function renderTable() {
     const summaryText = document.getElementById('tableSummaryText');
     if (!tbody) return;
 
-    // Filter Logic
     const query = AppState.searchQuery;
     const filter = AppState.filter;
 
     const filtered = AppState.users.filter(user => {
-        // Search Matching
+        // Search Matching (Name, UPN, Dept, Job Title, Apps Used)
         if (query) {
             const name = (user.displayName || '').toLowerCase();
             const upn = (user.userPrincipalName || '').toLowerCase();
             const dept = (user.department || '').toLowerCase();
             const job = (user.jobTitle || '').toLowerCase();
-            if (!name.includes(query) && !upn.includes(query) && !dept.includes(query) && !job.includes(query)) {
+            const apps = (user.appsUsed || []).join(' ').toLowerCase();
+
+            if (!name.includes(query) && !upn.includes(query) && !dept.includes(query) && !job.includes(query) && !apps.includes(query)) {
                 return false;
             }
         }
 
         // Segment Filter
         if (filter === 'all') return true;
-        if (filter === 'active') return user.diffDays !== null && user.diffDays <= 7;
+        if (filter === 'frequent') return user.monthlyAccessCount >= CONFIG.thresholds.frequentAccessCount;
         if (filter === 'admin') return user.isAdmin === true;
-        if (filter === 'abandoned') return user.diffDays === null || user.diffDays > 14;
+        if (filter === 'dormant') return user.usageCategory === 'dormant';
 
         return true;
     });
 
     if (summaryText) {
-        summaryText.textContent = `${I18N.table.showingPrefix} ${filtered.length} / ${AppState.users.length} ${I18N.table.accounts}`;
+        summaryText.textContent = `${I18N.table.showingPrefix} ${filtered.length} of ${AppState.users.length} ${I18N.table.accounts}`;
     }
 
     if (filtered.length === 0) {
@@ -359,12 +348,28 @@ function renderTable() {
 
     tbody.innerHTML = filtered.map(user => {
         const initials = computeInitials(user.displayName);
-        const timeFormatted = formatRelativeTime(user.lastSignIn);
-        const tier = I18N.tiers[user.usageClass] || I18N.tiers.abandoned;
+        const roleLabel = user.isAdmin ? I18N.roles.admin : (user.jobTitle || I18N.roles.member);
+        const roleBadge = user.isAdmin ? `<span class="sf-badge admin">Admin</span>` : '';
 
-        const roleBadge = user.isAdmin
-            ? `<span class="sf-badge admin" title="${escapeHtml(I18N.roles.admin)}">Quản trị viên</span>`
-            : `<span class="sf-badge member">Thành viên</span>`;
+        // Monthly count badge
+        let countClass = 'zero';
+        if (user.monthlyAccessCount >= 20) countClass = 'high';
+        else if (user.monthlyAccessCount >= 5) countClass = 'mid';
+        else if (user.monthlyAccessCount > 0) countClass = 'low';
+
+        const countBadge = `
+            <span class="sf-count-badge ${countClass}">
+                ${user.monthlyAccessCount} ${user.monthlyAccessCount === 1 ? 'session' : 'sessions'}
+            </span>
+        `;
+
+        // Application tags
+        const appsPills = (user.appsUsed && user.appsUsed.length > 0)
+            ? user.appsUsed.map(app => renderAppPill(app)).join('')
+            : '<span class="sf-label-tertiary" style="font-size:0.75rem;">None recorded</span>';
+
+        // Latest Timestamp
+        const timeObj = formatTimestamp(user.latestTimestamp);
 
         return `
             <tr>
@@ -372,8 +377,8 @@ function renderTable() {
                     <div class="sf-user-cell">
                         <div class="sf-avatar ${user.isAdmin ? 'admin' : ''}" aria-hidden="true">${initials}</div>
                         <div class="sf-user-meta">
-                            <span class="sf-user-name">${escapeHtml(user.displayName)}</span>
-                            <span class="sf-user-role-sub">${escapeHtml(user.jobTitle || 'Chưa đặt chức danh')}</span>
+                            <span class="sf-user-name">${escapeHtml(user.displayName)} ${roleBadge}</span>
+                            <span class="sf-user-role-sub">${escapeHtml(roleLabel)} • ${escapeHtml(user.department || 'General')}</span>
                         </div>
                     </div>
                 </td>
@@ -381,24 +386,38 @@ function renderTable() {
                     <span class="sf-code-pill">${escapeHtml(user.userPrincipalName)}</span>
                 </td>
                 <td>
-                    ${roleBadge}
+                    ${countBadge}
                 </td>
                 <td>
-                    <span class="sf-badge ${tier.class}" title="${escapeHtml(tier.hint)}">
-                        ${tier.label}
-                    </span>
+                    <div class="sf-app-tags">
+                        ${appsPills}
+                    </div>
                 </td>
                 <td>
-                    <span title="${user.lastSignIn ? new Date(user.lastSignIn).toLocaleString('vi-VN') : ''}">
-                        ${timeFormatted}
-                    </span>
+                    <div class="sf-time-cell">
+                        <span class="sf-time-relative">${timeObj.relative}</span>
+                        <span class="sf-time-exact">${timeObj.exact}</span>
+                    </div>
                 </td>
                 <td>
-                    <button type="button" class="sf-row-btn" data-view-id="${user.id}">Xem</button>
+                    <button type="button" class="sf-row-btn" data-view-id="${user.id}">Audit Log</button>
                 </td>
             </tr>
         `;
     }).join('');
+}
+
+function renderAppPill(appName) {
+    let styleClass = 'office';
+    const lower = (appName || '').toLowerCase();
+    if (lower.includes('word')) styleClass = 'word';
+    else if (lower.includes('excel')) styleClass = 'excel';
+    else if (lower.includes('outlook')) styleClass = 'outlook';
+    else if (lower.includes('sharepoint')) styleClass = 'sharepoint';
+    else if (lower.includes('onedrive')) styleClass = 'onedrive';
+    else if (lower.includes('admin') || lower.includes('portal')) styleClass = 'admin';
+
+    return `<span class="sf-app-pill ${styleClass}">${escapeHtml(appName)}</span>`;
 }
 
 function renderTableError(msg) {
@@ -418,12 +437,12 @@ function updateTimestamp(iso) {
     const el = document.getElementById('lastSyncTime');
     if (!el) return;
     const date = iso ? new Date(iso) : new Date();
-    el.textContent = date.toLocaleTimeString('vi-VN');
+    el.textContent = date.toLocaleTimeString('en-US');
     el.setAttribute('datetime', date.toISOString());
 }
 
 // ==========================================================================
-// Modal Sheet (Apple Detail View)
+// Modal Sheet (Access History & Exact Application Log)
 // ==========================================================================
 function renderModal() {
     const modal = document.getElementById('detailModal');
@@ -440,39 +459,52 @@ function renderModal() {
     }
 
     if (title) title.textContent = user.displayName;
-    if (sub) sub.textContent = user.userPrincipalName;
+    if (sub) sub.textContent = `${user.userPrincipalName} • ${user.isAdmin ? 'Global Administrator' : 'Staff Member'}`;
 
-    const tier = I18N.tiers[user.usageClass] || I18N.tiers.abandoned;
-    const exactDate = user.lastSignIn ? new Date(user.lastSignIn).toLocaleString('vi-VN') : I18N.relativeTime.never;
+    const historyItems = (user.history && user.history.length > 0)
+        ? user.history.map(ev => {
+            const evDate = new Date(ev.timestamp);
+            return `
+                <div class="sf-timeline-item">
+                    <div class="sf-timeline-left">
+                        <span class="sf-timeline-app">${escapeHtml(ev.app)}</span>
+                        <span class="sf-timeline-meta">${escapeHtml(ev.rawApp)} • ${escapeHtml(ev.os)} (${escapeHtml(ev.browser)})</span>
+                    </div>
+                    <div class="sf-timeline-right">
+                        <span class="sf-timeline-time">${evDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        <span class="sf-timeline-date">${evDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : `<p style="color: var(--sf-label-tertiary); font-size: 0.85rem; padding: 20px 0; text-align: center;">No individual sign-in events recorded for this account in the current 30-day window.</p>`;
 
     container.innerHTML = `
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Vai trò quản trị:</span>
-            <span class="sf-detail-val">${user.isAdmin ? I18N.roles.admin : I18N.roles.member}</span>
+        <div class="sf-modal-stats">
+            <div class="sf-modal-stat-item">
+                <span class="sf-modal-stat-label">Monthly Logins</span>
+                <span class="sf-modal-stat-value">${user.monthlyAccessCount} sessions</span>
+            </div>
+            <div class="sf-modal-stat-item">
+                <span class="sf-modal-stat-label">Account Status</span>
+                <span class="sf-modal-stat-value" style="font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                    ${user.accountEnabled ? '🟢 Enabled' : '🔴 Suspended'}
+                </span>
+            </div>
         </div>
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Phòng ban / Bộ phận:</span>
-            <span class="sf-detail-val">${escapeHtml(user.department || 'Chưa phân bổ')}</span>
+
+        <div>
+            <h4 class="sf-timeline-section-title">Applications Authenticated</h4>
+            <div class="sf-app-tags" style="margin-bottom: 16px;">
+                ${(user.appsUsed && user.appsUsed.length > 0) ? user.appsUsed.map(a => renderAppPill(a)).join('') : '<span class="sf-label-tertiary">None recorded</span>'}
+            </div>
         </div>
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Chức danh công vụ:</span>
-            <span class="sf-detail-val">${escapeHtml(user.jobTitle || 'Nhân viên')}</span>
-        </div>
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Tình trạng tài khoản:</span>
-            <span class="sf-detail-val">${user.accountEnabled ? '🟢 Đang hoạt động' : '🔴 Bị vô hiệu'}</span>
-        </div>
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Lần đăng nhập cuối:</span>
-            <span class="sf-detail-val">${exactDate}</span>
-        </div>
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Mức độ tương tác:</span>
-            <span class="sf-badge ${tier.class}">${tier.label}</span>
-        </div>
-        <div class="sf-detail-row">
-            <span class="sf-detail-label">Mã định danh Object ID:</span>
-            <span class="sf-code-pill" style="font-size: 0.72rem;">${user.id}</span>
+
+        <div>
+            <h4 class="sf-timeline-section-title">Recent Sign-in Events &amp; Timestamps</h4>
+            <div class="sf-timeline">
+                ${historyItems}
+            </div>
         </div>
     `;
 
@@ -481,7 +513,7 @@ function renderModal() {
 }
 
 // ==========================================================================
-// Utilities
+// Formatting & Utilities
 // ==========================================================================
 function computeInitials(name) {
     if (!name) return 'U';
@@ -490,19 +522,27 @@ function computeInitials(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function formatRelativeTime(isoString) {
-    if (!isoString) return `<span style="color: var(--sf-label-tertiary);">${I18N.relativeTime.never}</span>`;
+function formatTimestamp(isoString) {
+    if (!isoString) return { relative: 'Never', exact: 'No session recorded' };
     const date = new Date(isoString);
     const now = new Date();
     const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffSec < 60) return I18N.relativeTime.justNow;
-    if (diffSec < 3600) return `${Math.floor(diffSec / 60)} ${I18N.relativeTime.minutesAgo}`;
-    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} ${I18N.relativeTime.hoursAgo}`;
-    const days = Math.floor(diffSec / 86400);
-    if (days === 1) return I18N.relativeTime.yesterday;
-    if (days < 30) return `${days} ${I18N.relativeTime.daysAgo}`;
-    return date.toLocaleDateString('vi-VN');
+    let relative = '';
+    if (diffSec < 60) relative = 'Just now';
+    else if (diffSec < 3600) relative = `${Math.floor(diffSec / 60)}m ago`;
+    else if (diffSec < 86400) relative = `${Math.floor(diffSec / 3600)}h ago`;
+    else {
+        const days = Math.floor(diffSec / 86400);
+        if (days === 1) relative = 'Yesterday';
+        else if (days < 30) relative = `${days}d ago`;
+        else relative = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    const exact = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + 
+        ' at ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    return { relative, exact };
 }
 
 function escapeHtml(str) {
@@ -517,19 +557,19 @@ function escapeHtml(str) {
 
 function exportDatasetToCsv() {
     if (!AppState.users || AppState.users.length === 0) {
-        alert('Không có dữ liệu để xuất file.');
+        alert('No user data available to export.');
         return;
     }
 
-    const headers = ['Họ và Tên', 'Tài khoản UPN', 'Chức danh', 'Phòng ban', 'Vai trò', 'Lần đăng nhập cuối', 'Đánh giá'];
+    const headers = ['Full Name', 'Account UPN', 'Role', 'Department', 'Monthly Sessions', 'Applications Used', 'Latest Sign-In Timestamp'];
     const rows = AppState.users.map(u => [
         `"${(u.displayName || '').replace(/"/g, '""')}"`,
         `"${(u.userPrincipalName || '').replace(/"/g, '""')}"`,
-        `"${(u.jobTitle || '').replace(/"/g, '""')}"`,
-        `"${(u.department || '').replace(/"/g, '""')}"`,
-        `"${u.isAdmin ? 'Global Administrator' : 'Member'}"`,
-        `"${u.lastSignIn ? new Date(u.lastSignIn).toLocaleString('vi-VN') : 'Never'}"`,
-        `"${u.usageTier || ''}"`
+        `"${u.isAdmin ? 'Global Administrator' : (u.jobTitle || 'Member')}"`,
+        `"${(u.department || 'General').replace(/"/g, '""')}"`,
+        u.monthlyAccessCount,
+        `"${(u.appsUsed || []).join(', ')}"`,
+        `"${u.latestTimestamp ? new Date(u.latestTimestamp).toISOString() : 'Never'}"`
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');

@@ -11,12 +11,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Cache token in memory
+// In-memory token & sign-in cache
 let cachedToken = null;
 let tokenExpiry = 0;
+let cachedSignIns = null;
+let signInsExpiry = 0;
 
 /**
- * Get OAuth2 Access Token using Client Credentials Flow
+ * Acquire OAuth2 Token via Client Credentials
  */
 async function getAccessToken() {
     const tenantId = process.env.TENANT_ID;
@@ -24,7 +26,7 @@ async function getAccessToken() {
     const clientSecret = process.env.CLIENT_SECRET;
 
     if (!tenantId || !clientId || !clientSecret) {
-        throw new Error('Chưa cấu hình TENANT_ID, CLIENT_ID hoặc CLIENT_SECRET trong Environment Variables');
+        throw new Error('Missing TENANT_ID, CLIENT_ID or CLIENT_SECRET in environment variables.');
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -50,108 +52,178 @@ async function getAccessToken() {
 }
 
 /**
- * API Health & Configuration check
+ * Map raw app display names to clean, recognizable M365 application labels
+ */
+function normalizeApplicationName(rawName) {
+    if (!rawName) return 'Microsoft 365 Service';
+    const lower = rawName.toLowerCase();
+
+    if (lower.includes('word')) return 'Word';
+    if (lower.includes('excel')) return 'Excel';
+    if (lower.includes('powerpoint')) return 'PowerPoint';
+    if (lower.includes('outlook')) return 'Outlook';
+    if (lower.includes('onedrive')) return 'OneDrive';
+    if (lower.includes('sharepoint')) return 'SharePoint';
+    if (lower.includes('teams')) return 'Teams';
+    if (lower.includes('chatgpt')) return 'ChatGPT / Copilot';
+    if (lower.includes('admin') || lower.includes('portal') || lower.includes('management shell')) return 'Admin Center';
+    if (lower.includes('office') || lower.includes('wcss') || lower.includes('officehome')) return 'Office (Word/Excel/Docs)';
+    if (lower.includes('flow') || lower.includes('power platform')) return 'Power Automate';
+    if (lower.includes('graph')) return 'Graph CLI / API Tool';
+
+    return rawName;
+}
+
+/**
+ * Health & configuration probe
  */
 app.get('/api/config-status', (req, res) => {
-    const hasTenant = Boolean(process.env.TENANT_ID);
-    const hasClient = Boolean(process.env.CLIENT_ID);
-    const hasSecret = Boolean(process.env.CLIENT_SECRET);
-
     res.json({
-        configured: hasTenant && hasClient && hasSecret,
-        details: {
-            tenantIdConfigured: hasTenant,
-            clientIdConfigured: hasClient,
-            clientSecretConfigured: hasSecret
-        }
+        configured: Boolean(process.env.TENANT_ID && process.env.CLIENT_ID && process.env.CLIENT_SECRET),
+        tenantId: process.env.TENANT_ID ? `${process.env.TENANT_ID.slice(0, 8)}...` : null
     });
 });
 
 /**
- * API: Fetch User List with Activity, Admin Roles & Realtime Status
+ * Primary API: Users, Directory Roles, Monthly Access Count & Exact App Usage
  */
 app.get('/api/users/activity', async (req, res) => {
     try {
         const token = await getAccessToken();
         const headers = { Authorization: `Bearer ${token}` };
 
-        // 1. Fetch Users + SignInActivity
-        const usersUrl = 'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,jobTitle,department,userType,accountEnabled,createdDateTime,signInActivity&$top=100';
+        // 1. Fetch Users
+        const usersUrl = 'https://graph.microsoft.com/v1.0/users?$select=id,displayName,userPrincipalName,jobTitle,department,accountEnabled,createdDateTime,signInActivity&$top=100';
         const usersRes = await axios.get(usersUrl, { headers, timeout: 15000 });
         const rawUsers = usersRes.data.value || [];
 
-        // 2. Fetch Directory Roles to detect Admins
-        let adminUserIds = new Set();
+        // 2. Fetch Directory Roles to detect Global Administrators
+        const adminUserIds = new Set();
         try {
             const rolesRes = await axios.get('https://graph.microsoft.com/v1.0/directoryRoles', { headers, timeout: 10000 });
-            const globalAdminRole = (rolesRes.data.value || []).find(r => r.displayName === 'Global Administrator' || r.displayName === 'Company Administrator');
+            const globalAdminRole = (rolesRes.data.value || []).find(r => 
+                r.displayName === 'Global Administrator' || r.displayName === 'Company Administrator'
+            );
             if (globalAdminRole) {
                 const membersRes = await axios.get(`https://graph.microsoft.com/v1.0/directoryRoles/${globalAdminRole.id}/members`, { headers, timeout: 10000 });
                 (membersRes.data.value || []).forEach(m => adminUserIds.add(m.id));
             }
         } catch (rErr) {
-            console.warn('Role fetch warning:', rErr.message);
+            console.warn('Role inspection warning:', rErr.message);
         }
 
-        // 3. Process & Format Activity
+        // 3. Fetch Sign-in Audit Logs (Cached for 60s to ensure fast response)
+        const userAccessMap = {};
+        let totalMonthlyAccesses = 0;
+        const now = Math.floor(Date.now() / 1000);
+
+        try {
+            let signIns = [];
+            if (cachedSignIns && signInsExpiry > now) {
+                signIns = cachedSignIns;
+            } else {
+                const signInsUrl = 'https://graph.microsoft.com/v1.0/auditLogs/signIns?$top=150';
+                const signInsRes = await axios.get(signInsUrl, { headers, timeout: 30000 });
+                signIns = signInsRes.data.value || [];
+                cachedSignIns = signIns;
+                signInsExpiry = now + 60; // 60 seconds TTL
+            }
+
+            totalMonthlyAccesses = signIns.length;
+
+            signIns.forEach(entry => {
+                const upn = (entry.userPrincipalName || '').toLowerCase();
+                if (!upn) return;
+
+                if (!userAccessMap[upn]) {
+                    userAccessMap[upn] = {
+                        monthlyAccessCount: 0,
+                        appsSet: new Set(),
+                        events: []
+                    };
+                }
+
+                userAccessMap[upn].monthlyAccessCount++;
+
+                const cleanApp = normalizeApplicationName(entry.appDisplayName);
+                userAccessMap[upn].appsSet.add(cleanApp);
+
+                if (userAccessMap[upn].events.length < 15) {
+                    userAccessMap[upn].events.push({
+                        id: entry.id,
+                        app: cleanApp,
+                        rawApp: entry.appDisplayName || 'Unknown Application',
+                        timestamp: entry.createdDateTime,
+                        clientApp: entry.clientAppUsed || 'Web / Desktop',
+                        os: entry.deviceDetail?.operatingSystem || 'Unknown OS',
+                        browser: entry.deviceDetail?.browser || 'Browser',
+                        location: entry.location?.countryOrRegion || 'VN',
+                        ipAddress: entry.ipAddress || '',
+                        status: entry.status?.errorCode === 0 ? 'Success' : 'Failed'
+                    });
+                }
+            });
+        } catch (sErr) {
+            console.warn('AuditLogs sign-in inspection warning:', sErr.message);
+        }
+
+        // 4. Assemble Data for Each User
         const nowMs = Date.now();
         const processedUsers = rawUsers.map(user => {
+            const upn = (user.userPrincipalName || '').toLowerCase();
             const isAdmin = adminUserIds.has(user.id);
+            const accessData = userAccessMap[upn] || { monthlyAccessCount: 0, appsSet: new Set(), events: [] };
 
-            // Extract sign-in times
-            const lastInteractive = user.signInActivity?.lastSignInDateTime ? new Date(user.signInActivity.lastSignInDateTime).getTime() : null;
-            const lastNonInteractive = user.signInActivity?.lastNonInteractiveSignInDateTime ? new Date(user.signInActivity.lastNonInteractiveSignInDateTime).getTime() : null;
-
-            // Pick latest activity time
-            let latestActivityTime = null;
-            if (lastInteractive && lastNonInteractive) {
-                latestActivityTime = Math.max(lastInteractive, lastNonInteractive);
-            } else {
-                latestActivityTime = lastInteractive || lastNonInteractive;
+            // Determine latest sign-in timestamp (from sign-ins or signInActivity)
+            let latestTimestamp = null;
+            if (accessData.events.length > 0) {
+                latestTimestamp = accessData.events[0].timestamp;
+            } else if (user.signInActivity?.lastSignInDateTime) {
+                latestTimestamp = user.signInActivity.lastSignInDateTime;
             }
 
-            // Calculate usage tier
-            let usageTier = 'Chưa hoạt động';
-            let usageClass = 'abandoned';
+            const latestMs = latestTimestamp ? new Date(latestTimestamp).getTime() : null;
             let diffDays = null;
-
-            if (latestActivityTime) {
-                diffDays = Math.floor((nowMs - latestActivityTime) / (1000 * 60 * 60 * 24));
-                if (diffDays <= 3) {
-                    usageTier = 'Rất tích cực';
-                    usageClass = 'active';
-                } else if (diffDays <= 14) {
-                    usageTier = 'Thỉnh thoảng';
-                    usageClass = 'moderate';
-                } else if (diffDays <= 30) {
-                    usageTier = 'Ít sử dụng';
-                    usageClass = 'idle';
-                } else {
-                    usageTier = 'Có nguy cơ bỏ hoang';
-                    usageClass = 'abandoned';
-                }
+            if (latestMs) {
+                diffDays = Math.floor((nowMs - latestMs) / (1000 * 60 * 60 * 24));
             }
+
+            // Usage categorization
+            let usageCategory = 'inactive';
+            if (accessData.monthlyAccessCount >= 10 || (diffDays !== null && diffDays <= 3)) {
+                usageCategory = 'frequent';
+            } else if (accessData.monthlyAccessCount > 0 || (diffDays !== null && diffDays <= 14)) {
+                usageCategory = 'moderate';
+            } else {
+                usageCategory = 'dormant';
+            }
+
+            const appsList = Array.from(accessData.appsSet);
+            const latestApp = accessData.events.length > 0 ? accessData.events[0].app : (appsList[0] || 'None recorded');
 
             return {
                 id: user.id,
-                displayName: user.displayName || 'Chưa đặt tên',
+                displayName: user.displayName || 'Unnamed User',
                 userPrincipalName: user.userPrincipalName,
-                department: user.department || 'Chưa phân ban',
-                jobTitle: user.jobTitle || (isAdmin ? 'Quản trị viên hệ thống' : 'Nhân viên'),
+                department: user.department || 'General',
+                jobTitle: user.jobTitle || (isAdmin ? 'Global Administrator' : 'Staff Member'),
                 isAdmin,
-                accountEnabled: user.accountEnabled,
-                lastSignIn: latestActivityTime ? new Date(latestActivityTime).toISOString() : null,
+                accountEnabled: user.accountEnabled !== false,
+                monthlyAccessCount: accessData.monthlyAccessCount,
+                appsUsed: appsList,
+                latestApp,
+                latestTimestamp,
                 diffDays,
-                usageTier,
-                usageClass
+                usageCategory,
+                history: accessData.events
             };
         });
 
-        // 4. Calculate Summary Statistics
+        // 5. Aggregate Summary Statistics
         const total = processedUsers.length;
         const adminCount = processedUsers.filter(u => u.isAdmin).length;
-        const active7dCount = processedUsers.filter(u => u.diffDays !== null && u.diffDays <= 7).length;
-        const abandonedCount = processedUsers.filter(u => u.diffDays === null || u.diffDays > 14).length;
+        const activeUsersCount = processedUsers.filter(u => u.monthlyAccessCount > 0 || (u.diffDays !== null && u.diffDays <= 7)).length;
+        const dormantCount = processedUsers.filter(u => u.monthlyAccessCount === 0 && (u.diffDays === null || u.diffDays > 14)).length;
 
         res.json({
             success: true,
@@ -159,14 +231,15 @@ app.get('/api/users/activity', async (req, res) => {
             stats: {
                 total,
                 adminCount,
-                active7dCount,
-                abandonedCount
+                activeUsersCount,
+                dormantCount,
+                totalMonthlyAccesses
             },
             users: processedUsers
         });
 
     } catch (err) {
-        console.error('Lỗi truy vấn Microsoft Graph:', err.response?.data || err.message);
+        console.error('Microsoft Graph processing error:', err.response?.data || err.message);
         res.status(500).json({
             success: false,
             message: err.response?.data?.error?.message || err.message
@@ -174,7 +247,7 @@ app.get('/api/users/activity', async (req, res) => {
     }
 });
 
-// Fallback to index.html
+// Default route
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

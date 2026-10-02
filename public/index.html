@@ -1,50 +1,50 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tổng Quan Hoạt Động Tài Khoản Microsoft 365</title>
+    <title>Microsoft 365 User Access & Application Governance</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Apple Glass Header -->
+    <!-- Apple Glassmorphic Header -->
     <header class="sf-nav" role="banner">
         <div class="sf-nav-container">
             <div class="sf-brand">
                 <div class="sf-brand-badge" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                     </svg>
                 </div>
-                <div class="sf-brand-title">
-                    <h1 id="appTitle">Microsoft 365 Monitor</h1>
-                    <span class="sf-tenant-pill" id="tenantBadge">bct0902.onmicrosoft.com</span>
+                <div class="sf-brand-meta">
+                    <h1 id="appTitle">Microsoft 365 Access Monitor</h1>
+                    <span class="sf-tenant-tag" id="tenantBadge">bct0902.onmicrosoft.com</span>
                 </div>
             </div>
 
             <div class="sf-nav-actions">
-                <div class="sf-live-indicator" aria-label="Hệ thống đang hoạt động theo thời gian thực">
-                    <span class="sf-pulse"></span>
-                    <span class="sf-live-label" id="liveStatusText">Thời gian thực</span>
+                <div class="sf-live-badge" aria-label="Realtime Monitoring Active">
+                    <span class="sf-pulse-dot"></span>
+                    <span class="sf-live-caption">Live Telemetry</span>
                 </div>
 
                 <div class="sf-divider" aria-hidden="true"></div>
 
                 <div class="sf-control-item">
-                    <label for="autoRefreshInterval" class="sr-only">Tần suất làm mới</label>
-                    <select id="autoRefreshInterval" class="sf-select" title="Tần suất làm mới tự động">
-                        <option value="15000">15 giây</option>
-                        <option value="30000" selected>30 giây</option>
-                        <option value="60000">1 phút</option>
-                        <option value="0">Tắt tự động</option>
+                    <label for="autoRefreshInterval" class="sr-only">Refresh Frequency</label>
+                    <select id="autoRefreshInterval" class="sf-select" title="Auto Refresh Frequency">
+                        <option value="15000">Every 15s</option>
+                        <option value="30000" selected>Every 30s</option>
+                        <option value="60000">Every 1m</option>
+                        <option value="0">Manual Only</option>
                     </select>
                 </div>
 
-                <button id="btnManualRefresh" class="sf-button sf-button-secondary" aria-label="Làm mới ngay">
+                <button id="btnManualRefresh" class="sf-button sf-button-secondary" aria-label="Refresh Data">
                     <svg class="sf-icon" id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                     </svg>
-                    <span>Làm mới</span>
+                    <span>Refresh</span>
                 </button>
             </div>
         </div>
@@ -52,33 +52,33 @@
 
     <!-- Main Workspace -->
     <main class="sf-viewport" role="main">
-        <!-- Hero Summary Section -->
+        <!-- Hero Header -->
         <header class="sf-hero">
             <div class="sf-hero-content">
-                <p class="sf-eyebrow" id="heroEyebrow">Báo Cáo Tình Trạng Tổ Chức</p>
-                <h2 class="sf-headline" id="heroHeadline">Giám Sát Tài Nguyên &amp; Tần Suất Truy Cập</h2>
-                <p class="sf-description" id="heroDescription">Theo dõi các chỉ số xác thực và mức độ sử dụng tài khoản doanh nghiệp được cấp phát.</p>
+                <p class="sf-eyebrow">Enterprise Identity &amp; Application Auditing</p>
+                <h2 class="sf-headline">User Activity &amp; Monthly Access Governance</h2>
+                <p class="sf-description">Track authenticated applications (Word, Excel, Outlook, SharePoint), exact usage timestamps, and monthly session frequencies.</p>
             </div>
             <div class="sf-hero-timestamp" id="lastUpdatedContainer">
-                <span class="sf-label-dim">Cập nhật lần cuối:</span>
+                <span class="sf-label-dim">Last synced:</span>
                 <time id="lastSyncTime" class="sf-timestamp-value">--:--:--</time>
             </div>
         </header>
 
         <!-- KPI Metrics Grid (Apple Card Design) -->
-        <section class="sf-metrics-grid" aria-label="Các chỉ số chính" id="metricsSection">
+        <section class="sf-metrics-grid" aria-label="Key Performance Indicators" id="metricsSection">
             <!-- Dynamically populated via app.js -->
         </section>
 
-        <!-- Data Filter & Segmented Control -->
-        <section class="sf-panel" aria-label="Danh sách tài khoản">
+        <!-- Data Panel & Filter Controls -->
+        <section class="sf-panel" aria-label="User Access Records">
             <div class="sf-panel-header">
                 <!-- Apple Segmented Control -->
                 <div class="sf-segmented-control" role="tablist" id="segmentedFilter">
-                    <button role="tab" class="sf-segment active" data-filter="all" aria-selected="true">Tất cả (<span id="countAll">0</span>)</button>
-                    <button role="tab" class="sf-segment" data-filter="active" aria-selected="false">Tích cực (<span id="countActive">0</span>)</button>
-                    <button role="tab" class="sf-segment" data-filter="admin" aria-selected="false">Quản trị (<span id="countAdmin">0</span>)</button>
-                    <button role="tab" class="sf-segment" data-filter="abandoned" aria-selected="false">Cần lưu ý (<span id="countAbandoned">0</span>)</button>
+                    <button role="tab" class="sf-segment active" data-filter="all" aria-selected="true">All Members (<span id="countAll">0</span>)</button>
+                    <button role="tab" class="sf-segment" data-filter="frequent" aria-selected="false">Frequent Users (<span id="countFrequent">0</span>)</button>
+                    <button role="tab" class="sf-segment" data-filter="admin" aria-selected="false">Administrators (<span id="countAdmin">0</span>)</button>
+                    <button role="tab" class="sf-segment" data-filter="dormant" aria-selected="false">Inactive / Review (<span id="countDormant">0</span>)</button>
                 </div>
 
                 <!-- Search & Export Tools -->
@@ -88,54 +88,54 @@
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        <input type="search" id="userSearchInput" placeholder="Tìm theo tên, email, chức vụ..." autocomplete="off" spellcheck="false">
-                        <button type="button" id="searchClearBtn" class="sf-search-clear" aria-label="Xóa tìm kiếm" hidden>&times;</button>
+                        <input type="search" id="userSearchInput" placeholder="Filter by name, email, app (Word, Excel)..." autocomplete="off" spellcheck="false">
+                        <button type="button" id="searchClearBtn" class="sf-search-clear" aria-label="Clear Search" hidden>&times;</button>
                     </div>
 
-                    <button id="btnExportCsv" class="sf-button sf-button-secondary" title="Xuất danh sách ra định dạng CSV">
+                    <button id="btnExportCsv" class="sf-button sf-button-secondary" title="Export dataset as CSV">
                         <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
-                        <span>Xuất CSV</span>
+                        <span>Export CSV</span>
                     </button>
                 </div>
             </div>
 
             <!-- Table Component -->
             <div class="sf-table-wrapper">
-                <table class="sf-table" aria-label="Bảng dữ liệu tài khoản">
+                <table class="sf-table" aria-label="User Access Activity Table">
                     <thead>
                         <tr>
-                            <th scope="col" class="th-user">Thành viên</th>
-                            <th scope="col" class="th-upn">Tài khoản (UPN)</th>
-                            <th scope="col" class="th-role">Vai trò</th>
-                            <th scope="col" class="th-status">Tình trạng</th>
-                            <th scope="col" class="th-time">Hoạt động gần nhất</th>
-                            <th scope="col" class="th-action">Chi tiết</th>
+                            <th scope="col" class="th-user">Member &amp; Role</th>
+                            <th scope="col" class="th-upn">Account UPN</th>
+                            <th scope="col" class="th-count">Monthly Accesses</th>
+                            <th scope="col" class="th-apps">Applications Used</th>
+                            <th scope="col" class="th-time">Latest Sign-in Time</th>
+                            <th scope="col" class="th-action">Audit Log</th>
                         </tr>
                     </thead>
                     <tbody id="userTableBody">
                         <tr>
                             <td colspan="6" class="sf-table-empty">
                                 <div class="sf-skeleton-loader"></div>
-                                <p>Đang tải dữ liệu từ máy chủ...</p>
+                                <p>Querying telemetry from Microsoft Graph API...</p>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Table Meta Footer -->
+            <!-- Panel Footer -->
             <footer class="sf-panel-footer">
-                <span id="tableSummaryText">Đang tải thông tin...</span>
+                <span id="tableSummaryText">Loading accounts...</span>
                 <span class="sf-legend-dot"></span>
-                <span>Chế độ đọc: Chỉ xem metadata cấp phép công vụ</span>
+                <span>Auditing Scope: Sign-in events &amp; Application workloads (30 days)</span>
             </footer>
         </section>
 
-        <!-- Compliance & Privacy Footnote (Apple Style) -->
+        <!-- Compliance & Privacy Footnote -->
         <footer class="sf-privacy-card">
             <div class="sf-privacy-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -144,8 +144,8 @@
                 </svg>
             </div>
             <div class="sf-privacy-text">
-                <h3 id="privacyTitle">Tiêu Chuẩn Bảo Mật &amp; Minh Bạch Dữ Liệu</h3>
-                <p id="privacyDescription">Giao diện này chỉ tổng hợp các trường dữ liệu hệ thống (ngày giờ xác thực gần nhất, tên hiển thị, đơn vị tổ chức) từ Microsoft Graph API. Hệ thống cam kết không can thiệp, không trích xuất và không lưu trữ nội dung tệp tin, thông điệp cá nhân hay tài liệu công việc.</p>
+                <h3>Data Governance &amp; Privacy Compliance</h3>
+                <p>This dashboard strictly inspects authentication telemetry (application client, login timestamps, and session counts) via Microsoft Graph Audit Logs. The platform <strong>never accesses, extracts, or inspects the contents</strong> of user spreadsheets, documents, or personal emails.</p>
             </div>
         </footer>
     </main>
@@ -155,10 +155,10 @@
         <div class="sf-modal-card">
             <header class="sf-modal-header">
                 <div>
-                    <h3 id="modalUserName" class="sf-modal-title">Chi Tiết Tài Khoản</h3>
-                    <p id="modalUserSubtitle" class="sf-modal-sub">Thông tin quản trị định danh</p>
+                    <h3 id="modalUserName" class="sf-modal-title">Access &amp; Application Log</h3>
+                    <p id="modalUserSubtitle" class="sf-modal-sub">Detailed session breakdown</p>
                 </div>
-                <button type="button" class="sf-modal-close" id="modalCloseBtn" aria-label="Đóng cửa sổ">
+                <button type="button" class="sf-modal-close" id="modalCloseBtn" aria-label="Close dialog">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -166,7 +166,7 @@
                 </button>
             </header>
             <div class="sf-modal-body" id="modalDetailsContainer">
-                <!-- Dynamically populated -->
+                <!-- Dynamically populated via app.js -->
             </div>
         </div>
     </div>

@@ -1,14 +1,13 @@
 /* ==========================================================================
-   Apple Human Interface Guidelines (HIG) Inspired Design System
-   M365 Identity & Activity Governance Dashboard
-   Strictly Light Mode • Zero AI-Slop • International Typography Standard
+   Apple Human Interface Guidelines (HIG) Light Theme
+   M365 Identity, App Workload & Access Auditing System
+   Strictly English • Light Mode • Zero Hardcoding • Zero AI-Slop
    ========================================================================== */
 
 :root {
-    /* Apple Color Palette */
     --sf-bg: #f5f5f7;
     --sf-surface: #ffffff;
-    --sf-surface-translucent: rgba(255, 255, 255, 0.82);
+    --sf-surface-translucent: rgba(255, 255, 255, 0.85);
     --sf-surface-alt: #fbfbfd;
     --sf-fill-tertiary: #e8e8ed;
     --sf-fill-quaternary: #f2f2f7;
@@ -34,13 +33,16 @@
     --sf-purple: #af52de;
     --sf-purple-tint: rgba(175, 82, 222, 0.12);
 
+    --sf-teal: #30b0c7;
+    --sf-teal-tint: rgba(48, 176, 199, 0.12);
+
     --sf-border: rgba(0, 0, 0, 0.07);
     --sf-border-strong: rgba(0, 0, 0, 0.14);
 
     --sf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
     --sf-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
     --sf-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-    --sf-shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18), 0 8px 24px rgba(0, 0, 0, 0.08);
+    --sf-shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.16), 0 8px 24px rgba(0, 0, 0, 0.06);
 
     --sf-radius-sm: 8px;
     --sf-radius-md: 12px;
@@ -52,7 +54,6 @@
     --sf-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Base Reset */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -83,7 +84,7 @@ body {
 }
 
 /* ==========================================================================
-   Header (Apple Frosted Glass Navigation)
+   Apple Header & Frosted Navigation
    ========================================================================== */
 .sf-nav {
     position: sticky;
@@ -93,11 +94,10 @@ body {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-bottom: 1px solid var(--sf-border);
-    transition: background-color 0.3s var(--sf-ease);
 }
 
 .sf-nav-container {
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 12px 28px;
     display: flex;
@@ -128,15 +128,15 @@ body {
     height: 18px;
 }
 
-.sf-brand-title h1 {
+.sf-brand-meta h1 {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--sf-label-primary);
-    line-height: 1.2;
     letter-spacing: -0.015em;
+    line-height: 1.2;
 }
 
-.sf-tenant-pill {
+.sf-tenant-tag {
     font-size: 0.72rem;
     color: var(--sf-label-secondary);
     font-weight: 500;
@@ -149,7 +149,7 @@ body {
     gap: 12px;
 }
 
-.sf-live-indicator {
+.sf-live-badge {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -158,12 +158,12 @@ body {
     border-radius: var(--sf-radius-pill);
 }
 
-.sf-pulse {
+.sf-pulse-dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
     background: var(--sf-green);
-    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4);
+    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.5);
     animation: sf-live-pulse 2s infinite var(--sf-ease);
 }
 
@@ -173,8 +173,8 @@ body {
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
 }
 
-.sf-live-label {
-    font-size: 0.75rem;
+.sf-live-caption {
+    font-size: 0.74rem;
     font-weight: 600;
     color: #248a3d;
 }
@@ -185,7 +185,6 @@ body {
     background: var(--sf-border);
 }
 
-/* Controls */
 .sf-select {
     background-color: var(--sf-fill-quaternary);
     color: var(--sf-label-primary);
@@ -196,8 +195,8 @@ body {
     font-weight: 500;
     font-family: inherit;
     cursor: pointer;
-    transition: all 0.2s var(--sf-ease);
     outline: none;
+    transition: all 0.2s var(--sf-ease);
 }
 
 .sf-select:hover {
@@ -238,11 +237,6 @@ body {
     transform: translateY(-0.5px);
 }
 
-.sf-button-secondary:active {
-    transform: translateY(0);
-    background-color: var(--sf-fill-quaternary);
-}
-
 .sf-icon {
     width: 14px;
     height: 14px;
@@ -261,7 +255,7 @@ body {
    Viewport & Hero Section
    ========================================================================== */
 .sf-viewport {
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 32px 28px 64px 28px;
 }
@@ -318,7 +312,7 @@ body {
 }
 
 /* ==========================================================================
-   KPI Metrics Grid
+   KPI Metrics Grid (Apple Card Style)
    ========================================================================== */
 .sf-metrics-grid {
     display: grid;
@@ -356,7 +350,6 @@ body {
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--sf-label-secondary);
-    letter-spacing: -0.01em;
 }
 
 .sf-card-icon {
@@ -460,7 +453,7 @@ body {
     min-width: 280px;
 }
 
-/* Cupertino Search Field */
+/* Search Field */
 .sf-search-field {
     position: relative;
     max-width: 320px;
@@ -521,7 +514,7 @@ body {
 }
 
 /* ==========================================================================
-   Apple Data Table
+   Table & Badges
    ========================================================================== */
 .sf-table-wrapper {
     overflow-x: auto;
@@ -542,6 +535,7 @@ body {
     color: var(--sf-label-secondary);
     background: var(--sf-surface-alt);
     border-bottom: 1px solid var(--sf-border);
+    white-space: nowrap;
 }
 
 .sf-table td {
@@ -575,7 +569,6 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    letter-spacing: 0.02em;
 }
 
 .sf-avatar.admin {
@@ -610,46 +603,86 @@ body {
     border-radius: 4px;
 }
 
-/* Badges */
-.sf-badge {
+/* Monthly Session Count Badge */
+.sf-count-badge {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: var(--sf-radius-pill);
-    font-size: 0.74rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
 }
 
-.sf-badge.admin {
-    background: var(--sf-purple-tint);
-    color: var(--sf-purple);
-}
-
-.sf-badge.member {
-    background: var(--sf-fill-quaternary);
-    color: var(--sf-label-secondary);
-}
-
-.sf-badge.active {
+.sf-count-badge.high {
     background: var(--sf-green-tint);
     color: #248a3d;
 }
 
-.sf-badge.moderate {
+.sf-count-badge.mid {
     background: var(--sf-blue-tint);
     color: #0062cc;
 }
 
-.sf-badge.idle {
+.sf-count-badge.low {
     background: var(--sf-orange-tint);
     color: #b25e00;
 }
 
-.sf-badge.abandoned {
-    background: var(--sf-red-tint);
-    color: #d70015;
+.sf-count-badge.zero {
+    background: var(--sf-fill-quaternary);
+    color: var(--sf-label-tertiary);
+    font-weight: 500;
+}
+
+/* Application Tags (Word, Excel, Outlook, SharePoint...) */
+.sf-app-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 320px;
+}
+
+.sf-app-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    background: var(--sf-fill-quaternary);
+    color: var(--sf-label-secondary);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.sf-app-pill.office { background: rgba(0, 113, 227, 0.08); color: #0066cc; }
+.sf-app-pill.word { background: rgba(30, 136, 229, 0.1); color: #1565c0; }
+.sf-app-pill.excel { background: rgba(46, 125, 50, 0.1); color: #2e7d32; }
+.sf-app-pill.outlook { background: rgba(2, 136, 209, 0.1); color: #0277bd; }
+.sf-app-pill.sharepoint { background: rgba(0, 150, 136, 0.1); color: #00796b; }
+.sf-app-pill.onedrive { background: rgba(3, 169, 244, 0.1); color: #0288d1; }
+.sf-app-pill.admin { background: rgba(175, 82, 222, 0.1); color: #8e24aa; }
+
+/* Timestamp cell */
+.sf-time-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.sf-time-relative {
+    font-weight: 600;
+    color: var(--sf-label-primary);
+    font-size: 0.84rem;
+}
+
+.sf-time-exact {
+    font-size: 0.74rem;
+    color: var(--sf-label-tertiary);
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
 }
 
 .sf-row-btn {
@@ -657,10 +690,10 @@ body {
     border: none;
     color: var(--sf-blue);
     font-size: 0.82rem;
-    font-weight: 500;
+    font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 5px 10px;
     border-radius: 6px;
     transition: background 0.15s var(--sf-ease);
 }
@@ -689,7 +722,7 @@ body {
 }
 
 /* ==========================================================================
-   Privacy & Governance Card
+   Privacy Footnote
    ========================================================================== */
 .sf-privacy-card {
     background: var(--sf-surface);
@@ -734,7 +767,7 @@ body {
 }
 
 /* ==========================================================================
-   Apple Sheet / Modal Dialog
+   Apple Detail Modal & Access Log Timeline
    ========================================================================== */
 .sf-modal-backdrop {
     position: fixed;
@@ -765,10 +798,13 @@ body {
     border: 1px solid var(--sf-border);
     border-radius: var(--sf-radius-xl);
     width: 100%;
-    max-width: 520px;
+    max-width: 580px;
+    max-height: 85vh;
     box-shadow: var(--sf-shadow-modal);
     transform: scale(0.96);
     transition: transform 0.25s var(--sf-ease);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
@@ -782,6 +818,7 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     border-bottom: 1px solid var(--sf-border);
+    background: var(--sf-surface);
 }
 
 .sf-modal-title {
@@ -821,37 +858,106 @@ body {
 
 .sf-modal-body {
     padding: 20px 24px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
 }
 
-.sf-detail-row {
+/* Modal KPI Highlights */
+.sf-modal-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    background: var(--sf-fill-quaternary);
+    padding: 14px 16px;
+    border-radius: var(--sf-radius-md);
+}
+
+.sf-modal-stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.sf-modal-stat-label {
+    font-size: 0.72rem;
+    color: var(--sf-label-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.sf-modal-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sf-label-primary);
+    margin-top: 2px;
+}
+
+/* Timeline of Access Events */
+.sf-timeline-section-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sf-label-secondary);
+    margin-bottom: 8px;
+}
+
+.sf-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sf-timeline-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    padding: 10px 14px;
+    border-radius: var(--sf-radius-md);
+    background: var(--sf-surface-alt);
+    border: 1px solid var(--sf-border);
 }
 
-.sf-detail-row:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+.sf-timeline-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.sf-detail-label {
-    font-size: 0.8rem;
-    color: var(--sf-label-secondary);
-}
-
-.sf-detail-val {
+.sf-timeline-app {
     font-size: 0.84rem;
     font-weight: 600;
     color: var(--sf-label-primary);
-    text-align: right;
 }
 
-/* Skeleton Loading */
+.sf-timeline-meta {
+    font-size: 0.74rem;
+    color: var(--sf-label-tertiary);
+}
+
+.sf-timeline-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.sf-timeline-time {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--sf-label-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.sf-timeline-date {
+    font-size: 0.72rem;
+    color: var(--sf-label-tertiary);
+}
+
+/* Loading skeleton */
 .sf-table-empty {
     text-align: center;
     padding: 60px 20px !important;
@@ -868,23 +974,10 @@ body {
     animation: sf-spin 0.8s linear infinite;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
-    .sf-nav-container {
-        padding: 10px 16px;
-    }
-    .sf-viewport {
-        padding: 20px 16px 40px 16px;
-    }
-    .sf-panel-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .sf-panel-tools {
-        width: 100%;
-        justify-content: space-between;
-    }
-    .sf-search-field {
-        max-width: 100%;
-    }
+    .sf-nav-container { padding: 10px 16px; }
+    .sf-viewport { padding: 20px 16px 40px 16px; }
+    .sf-panel-header { flex-direction: column; align-items: stretch; }
+    .sf-panel-tools { width: 100%; justify-content: space-between; }
+    .sf-search-field { max-width: 100%; }
 }
