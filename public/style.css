@@ -715,6 +715,39 @@ body {
     line-height: 1;
 }
 
+/* Sort Control in Toolbar */
+.sf-sort-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sf-sort-label {
+    font-size: 0.8rem;
+    color: var(--sf-label-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.sf-sort-select {
+    padding: 6px 28px 6px 10px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-radius: var(--sf-radius-sm);
+    background-color: var(--sf-surface);
+    border: 1px solid var(--sf-border);
+    color: var(--sf-label-primary);
+    box-shadow: var(--sf-shadow-sm);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s var(--sf-ease);
+}
+
+.sf-sort-select:hover {
+    background-color: var(--sf-surface-alt);
+    border-color: var(--sf-border-strong);
+}
+
 /* ==========================================================================
    Table & Badges
    ========================================================================== */
@@ -738,6 +771,77 @@ body {
     background: var(--sf-surface-alt);
     border-bottom: 1px solid var(--sf-border);
     white-space: nowrap;
+}
+
+.sf-table th.sf-sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s var(--sf-ease), color 0.15s var(--sf-ease);
+}
+
+.sf-table th.sf-sortable:hover {
+    background: var(--sf-fill-quaternary);
+    color: var(--sf-label-primary);
+}
+
+.sf-th-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sf-sort-indicator {
+    display: inline-flex;
+    flex-direction: column;
+    width: 8px;
+    height: 12px;
+    position: relative;
+    opacity: 0.35;
+    transition: opacity 0.15s var(--sf-ease);
+}
+
+.sf-table th.sf-sortable:hover .sf-sort-indicator {
+    opacity: 0.75;
+}
+
+.sf-table th.sf-sortable.active .sf-sort-indicator {
+    opacity: 1;
+}
+
+.sf-sort-indicator::before,
+.sf-sort-indicator::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+}
+
+.sf-sort-indicator::before {
+    top: 1px;
+    border-bottom: 4px solid var(--sf-label-tertiary);
+}
+
+.sf-sort-indicator::after {
+    bottom: 1px;
+    border-top: 4px solid var(--sf-label-tertiary);
+}
+
+.sf-table th.sf-sortable.active.asc .sf-sort-indicator::before {
+    border-bottom-color: var(--sf-blue);
+}
+
+.sf-table th.sf-sortable.active.asc .sf-sort-indicator::after {
+    opacity: 0.2;
+}
+
+.sf-table th.sf-sortable.active.desc .sf-sort-indicator::after {
+    border-top-color: var(--sf-blue);
+}
+
+.sf-table th.sf-sortable.active.desc .sf-sort-indicator::before {
+    opacity: 0.2;
 }
 
 .sf-table td {

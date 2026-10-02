@@ -87,6 +87,8 @@ const AppState = {
     timer: null,
     e5Data: null,
     isTriggeringE5: false,
+    sortKey: 'access', // 'access' | 'name' | 'time'
+    sortDirection: 'desc', // 'desc' | 'asc'
 
     setFilter(newFilter) {
         this.filter = newFilter;
@@ -96,6 +98,13 @@ const AppState = {
 
     setSearch(query) {
         this.searchQuery = (query || '').trim().toLowerCase();
+        renderTable();
+    },
+
+    setSort(key, direction) {
+        this.sortKey = key;
+        this.sortDirection = direction;
+        updateSortUI();
         renderTable();
     },
 
@@ -184,6 +193,34 @@ function setupEventHandlers() {
     if (exportBtn) {
         exportBtn.addEventListener('click', exportDatasetToCsv);
     }
+
+    // Sort Dropdown Toolbar
+    const sortSelect = document.getElementById('tableSortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            const parts = (e.target.value || '').split('_');
+            if (parts.length === 2) {
+                AppState.setSort(parts[0], parts[1]);
+            }
+        });
+    }
+
+    // Interactive Column Header Sorting
+    const tableHeaders = document.querySelectorAll('th.sf-sortable');
+    tableHeaders.forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.getAttribute('data-sort');
+            if (!key) return;
+
+            let newDir = 'desc';
+            if (AppState.sortKey === key) {
+                newDir = AppState.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                newDir = (key === 'name') ? 'asc' : 'desc';
+            }
+            AppState.setSort(key, newDir);
+        });
+    });
 
     // Modal dialog controls
     const modalBackdrop = document.getElementById('detailModal');
@@ -277,6 +314,7 @@ async function fetchData(isManualTrigger = false) {
 
         updateMetricsValues();
         updateSegmentCounts();
+        updateSortUI();
         renderTable();
         updateTimestamp(result.timestamp);
 
@@ -333,6 +371,24 @@ function renderSegmentedControls() {
     });
 }
 
+function updateSortUI() {
+    // 1. Sync Dropdown Value
+    const select = document.getElementById('tableSortSelect');
+    if (select) {
+        select.value = `${AppState.sortKey}_${AppState.sortDirection}`;
+    }
+
+    // 2. Sync Column Headers
+    const sortableHeaders = document.querySelectorAll('th.sf-sortable');
+    sortableHeaders.forEach(th => {
+        const key = th.getAttribute('data-sort');
+        const isActive = key === AppState.sortKey;
+        th.classList.toggle('active', isActive);
+        th.classList.toggle('asc', isActive && AppState.sortDirection === 'asc');
+        th.classList.toggle('desc', isActive && AppState.sortDirection === 'desc');
+    });
+}
+
 function renderTable() {
     const tbody = document.getElementById('userTableBody');
     const summaryText = document.getElementById('tableSummaryText');
@@ -362,6 +418,30 @@ function renderTable() {
         if (filter === 'dormant') return user.usageCategory === 'dormant';
 
         return true;
+    });
+
+    // Apply Sorting: Name A-Z / Z-A, Access High / Low, Time Recent / Oldest
+    filtered.sort((a, b) => {
+        let cmp = 0;
+        if (AppState.sortKey === 'name') {
+            const nameA = (a.displayName || '').trim().toLowerCase();
+            const nameB = (b.displayName || '').trim().toLowerCase();
+            cmp = nameA.localeCompare(nameB, 'vi', { sensitivity: 'base' });
+        } else if (AppState.sortKey === 'access') {
+            const countA = a.monthlyAccessCount || 0;
+            const countB = b.monthlyAccessCount || 0;
+            cmp = countA - countB;
+            // Tie breaker by name
+            if (cmp === 0) {
+                cmp = (a.displayName || '').localeCompare(b.displayName || '', 'vi');
+            }
+        } else if (AppState.sortKey === 'time') {
+            const timeA = a.latestTimestamp ? new Date(a.latestTimestamp).getTime() : 0;
+            const timeB = b.latestTimestamp ? new Date(b.latestTimestamp).getTime() : 0;
+            cmp = timeA - timeB;
+        }
+
+        return AppState.sortDirection === 'asc' ? cmp : -cmp;
     });
 
     if (summaryText) {

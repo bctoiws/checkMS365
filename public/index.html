@@ -139,6 +139,18 @@
                         <button type="button" id="searchClearBtn" class="sf-search-clear" aria-label="Clear Search" hidden>&times;</button>
                     </div>
 
+                    <div class="sf-sort-wrapper">
+                        <label for="tableSortSelect" class="sf-sort-label">Sort:</label>
+                        <select id="tableSortSelect" class="sf-select sf-sort-select" aria-label="Sort users table">
+                            <option value="access_desc" selected>Logins: High → Low</option>
+                            <option value="access_asc">Logins: Low → High</option>
+                            <option value="name_asc">Name: A → Z</option>
+                            <option value="name_desc">Name: Z → A</option>
+                            <option value="time_desc">Time: Most Recent</option>
+                            <option value="time_asc">Time: Oldest</option>
+                        </select>
+                    </div>
+
                     <button id="btnExportCsv" class="sf-button sf-button-secondary" title="Export dataset as CSV">
                         <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -155,11 +167,26 @@
                 <table class="sf-table" aria-label="User Access Activity Table">
                     <thead>
                         <tr>
-                            <th scope="col" class="th-user">Member &amp; Role</th>
+                            <th scope="col" class="th-user sf-sortable" data-sort="name" title="Click to sort by Name (A-Z / Z-A)">
+                                <span class="sf-th-inner">
+                                    <span>Member &amp; Role</span>
+                                    <span class="sf-sort-indicator"></span>
+                                </span>
+                            </th>
                             <th scope="col" class="th-upn">Account UPN</th>
-                            <th scope="col" class="th-count">Monthly Accesses</th>
+                            <th scope="col" class="th-count sf-sortable active desc" data-sort="access" title="Click to sort by Monthly Access Count (High / Low)">
+                                <span class="sf-th-inner">
+                                    <span>Monthly Accesses</span>
+                                    <span class="sf-sort-indicator"></span>
+                                </span>
+                            </th>
                             <th scope="col" class="th-apps">Applications Used</th>
-                            <th scope="col" class="th-time">Latest Sign-in Time</th>
+                            <th scope="col" class="th-time sf-sortable" data-sort="time" title="Click to sort by Latest Sign-in Timestamp">
+                                <span class="sf-th-inner">
+                                    <span>Latest Sign-in Time</span>
+                                    <span class="sf-sort-indicator"></span>
+                                </span>
+                            </th>
                             <th scope="col" class="th-action">Audit Log</th>
                         </tr>
                     </thead>
