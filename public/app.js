@@ -12,7 +12,9 @@
 const CONFIG = {
     endpoints: {
         usersActivity: '/api/users/activity',
-        configStatus: '/api/config-status'
+        configStatus: '/api/config-status',
+        e5Status: '/api/e5-engine/status',
+        e5Trigger: '/api/e5-engine/trigger'
     },
     thresholds: {
         frequentAccessCount: 10,
@@ -83,6 +85,8 @@ const AppState = {
     selectedUser: null,
     isFetching: false,
     timer: null,
+    e5Data: null,
+    isTriggeringE5: false,
 
     setFilter(newFilter) {
         this.filter = newFilter;
@@ -108,7 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initMetricsGrid();
     setupEventHandlers();
     fetchData();
+    fetchE5Status();
     setupAutoRefresh();
+    setInterval(fetchE5Status, 15000); // Pulse E5 status every 15s
 });
 
 function initMetricsGrid() {
@@ -207,6 +213,33 @@ function setupEventHandlers() {
             }
         });
     }
+
+    // E5 Keep-Alive Renewal Engine Controls
+    const btnTriggerKeepAlive = document.getElementById('btnTriggerKeepAlive');
+    if (btnTriggerKeepAlive) {
+        btnTriggerKeepAlive.addEventListener('click', triggerE5Cycle);
+    }
+
+    const btnViewE5Logs = document.getElementById('btnViewE5Logs');
+    if (btnViewE5Logs) {
+        btnViewE5Logs.addEventListener('click', openE5Modal);
+    }
+
+    const e5ModalBackdrop = document.getElementById('e5Modal');
+    const e5ModalCloseBtn = document.getElementById('e5ModalCloseBtn');
+    if (e5ModalCloseBtn) {
+        e5ModalCloseBtn.addEventListener('click', closeE5Modal);
+    }
+    if (e5ModalBackdrop) {
+        e5ModalBackdrop.addEventListener('click', (e) => {
+            if (e.target === e5ModalBackdrop) closeE5Modal();
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeE5Modal();
+        }
+    });
 }
 
 function setupAutoRefresh() {
@@ -603,3 +636,155 @@ function exportDatasetToCsv() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
+
+// ==========================================================================
+// E5 Developer Auto-Renewal Keep-Alive Client Logic
+// ==========================================================================
+async function fetchE5Status() {
+    try {
+        const res = await fetch(CONFIG.endpoints.e5Status);
+        const data = await res.json();
+        if (data.success) {
+            AppState.e5Data = data;
+            renderE5Banner();
+        }
+    } catch (err) {
+        console.warn('[E5 Engine Status Sync]:', err.message);
+    }
+}
+
+function renderE5Banner() {
+    const data = AppState.e5Data;
+    if (!data) return;
+
+    const elCalls = document.getElementById('e5CallsToday');
+    const elNext = document.getElementById('e5NextRun');
+    const elStatus = document.getElementById('e5LastStatus');
+
+    if (elCalls) {
+        elCalls.textContent = `${data.callsToday || 0} calls`;
+    }
+
+    if (elNext && data.nextRunTime) {
+        const diffMs = new Date(data.nextRunTime).getTime() - Date.now();
+        if (diffMs > 0) {
+            const mins = Math.floor(diffMs / 60000);
+            const secs = Math.floor((diffMs % 60000) / 1000);
+            elNext.textContent = `in ${mins}m ${secs}s`;
+        } else {
+            elNext.textContent = 'Running now...';
+        }
+    }
+
+    if (elStatus) {
+        const lastCycle = (data.recentCycles && data.recentCycles.length > 0) ? data.recentCycles[0] : null;
+        if (lastCycle) {
+            elStatus.textContent = `${lastCycle.successCount}/${lastCycle.totalEndpoints} OK (${lastCycle.totalDurationMs}ms)`;
+            elStatus.className = lastCycle.successCount === lastCycle.totalEndpoints ? 'sf-e5-stat-value success' : 'sf-e5-stat-value';
+        } else {
+            elStatus.textContent = 'Active (Ready)';
+        }
+    }
+}
+
+async function triggerE5Cycle() {
+    const btn = document.getElementById('btnTriggerKeepAlive');
+    if (!btn || AppState.isTriggeringE5) return;
+    AppState.isTriggeringE5 = true;
+
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = `<span class="sf-spinning" style="display:inline-block;">⚡</span> Executing...`;
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(CONFIG.endpoints.e5Trigger, { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+            await fetchE5Status();
+            openE5Modal();
+        } else {
+            alert('Keep-alive execution warning: ' + (result.message || 'Unknown response'));
+        }
+    } catch (err) {
+        alert('Failed to execute keep-alive cycle: ' + err.message);
+    } finally {
+        AppState.isTriggeringE5 = false;
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+    }
+}
+
+function openE5Modal() {
+    const modal = document.getElementById('e5Modal');
+    const body = document.getElementById('e5ModalBody');
+    if (!modal || !body) return;
+
+    const data = AppState.e5Data;
+    const cycles = data?.recentCycles || [];
+
+    if (cycles.length === 0) {
+        body.innerHTML = `
+            <p style="text-align: center; color: var(--sf-label-tertiary); padding: 30px 0;">
+                No keep-alive cycles executed yet. Click "Run Cycle Now" to test.
+            </p>
+        `;
+    } else {
+        body.innerHTML = `
+            <div class="sf-modal-stats" style="margin-bottom: 20px;">
+                <div class="sf-modal-stat-item">
+                    <span class="sf-modal-stat-label">Total Cycles</span>
+                    <span class="sf-modal-stat-value">${data.totalCycles || 0} cycles</span>
+                </div>
+                <div class="sf-modal-stat-item">
+                    <span class="sf-modal-stat-label">API Calls Today</span>
+                    <span class="sf-modal-stat-value" style="color: #248a3d;">${data.callsToday || 0} calls</span>
+                </div>
+                <div class="sf-modal-stat-item">
+                    <span class="sf-modal-stat-label">Workload Coverage</span>
+                    <span class="sf-modal-stat-value">7 Graph Endpoints</span>
+                </div>
+            </div>
+
+            <h4 class="sf-timeline-section-title">Automated Keep-Alive Execution History (E5 Developer Telemetry)</h4>
+            <div class="sf-timeline">
+                ${cycles.map(c => {
+                    const date = new Date(c.timestamp);
+                    const isAllOk = c.successCount === c.totalEndpoints;
+                    const triggerLabel = (c.triggeredBy || 'automated_schedule').replace(/_/g, ' ').toUpperCase();
+                    return `
+                        <div class="sf-timeline-item">
+                            <div class="sf-timeline-left">
+                                <span class="sf-timeline-app">Keep-Alive Cycle • ${triggerLabel}</span>
+                                <span class="sf-timeline-meta">
+                                    <span style="color: ${isAllOk ? '#248a3d' : '#d70015'}; font-weight: 600;">
+                                        ${isAllOk ? '✓ All 7 Endpoints 200 OK' : `⚠️ ${c.successCount}/${c.totalEndpoints} OK`}
+                                    </span>
+                                    • Total latency: ${c.totalDurationMs}ms
+                                    <br>
+                                    <span style="font-size:0.75rem; color: var(--sf-label-tertiary);">
+                                        Endpoints: ${(c.results || []).map(r => `<code>${r.path.split('?')[0]}</code> (${r.status === 200 ? '200' : r.status}, ${r.durationMs}ms)`).join(' • ')}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="sf-timeline-right">
+                                <span class="sf-timeline-time">${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                <span class="sf-timeline-date">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeE5Modal() {
+    const modal = document.getElementById('e5Modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+}
+

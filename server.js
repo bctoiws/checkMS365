@@ -65,6 +65,170 @@ function cleanApplicationName(rawName, resourceName) {
 }
 
 /**
+ * =========================================================================
+ * Microsoft 365 E5 Developer Auto-Renewal Keep-Alive Engine
+ * Periodically executes authentic Graph API requests across multiple services
+ * simulating genuine developer development activity to ensure 90-day renewals.
+ * =========================================================================
+ */
+const E5RenewalEngine = {
+    enabled: true,
+    intervalMinutes: parseInt(process.env.E5_INTERVAL_MINUTES || '60', 10), // Every 60 minutes default
+    lastRunTime: null,
+    nextRunTime: null,
+    totalCycles: 0,
+    callsToday: 0,
+    lastDayTracked: new Date().getUTCDate(),
+    recentCycles: [],
+    timer: null,
+
+    // Target Graph API endpoints simulating active developer activity
+    targetEndpoints: [
+        { name: 'Tenant Organization', path: '/v1.0/organization', weight: 'Core Tenant' },
+        { name: 'Subscription Licenses & SKUs', path: '/v1.0/subscribedSkus', weight: 'License Allocation' },
+        { name: 'Directory User Roster', path: '/v1.0/users?$top=25&$select=id,displayName,userPrincipalName', weight: 'Identity' },
+        { name: 'Directory Groups', path: '/v1.0/groups?$top=15&$select=id,displayName', weight: 'Collaboration' },
+        { name: 'Directory Administrative Roles', path: '/v1.0/directoryRoles', weight: 'Governance' },
+        { name: 'Directory Audit Logs', path: '/v1.0/auditLogs/directoryAudits?$top=10', weight: 'Security Compliance' },
+        { name: 'Enterprise Service Principals', path: '/v1.0/servicePrincipals?$top=10&$select=id,appDisplayName', weight: 'App Registration' }
+    ],
+
+    async executeCycle(triggeredBy = 'automated_schedule') {
+        const currentDay = new Date().getUTCDate();
+        if (currentDay !== this.lastDayTracked) {
+            this.callsToday = 0;
+            this.lastDayTracked = currentDay;
+        }
+
+        const cycleStart = Date.now();
+        const cycleId = 'cycle_' + cycleStart;
+        const results = [];
+
+        console.log(`[E5 Engine] Starting keep-alive renewal cycle (${triggeredBy})...`);
+
+        try {
+            const token = await getAccessToken();
+            const headers = { Authorization: `Bearer ${token}` };
+
+            for (const ep of this.targetEndpoints) {
+                const epStart = Date.now();
+                try {
+                    const res = await axios.get(`https://graph.microsoft.com${ep.path}`, {
+                        headers,
+                        timeout: 15000
+                    });
+                    const duration = Date.now() - epStart;
+                    this.callsToday++;
+                    results.push({
+                        name: ep.name,
+                        path: ep.path,
+                        weight: ep.weight,
+                        status: res.status,
+                        durationMs: duration,
+                        success: true,
+                        itemCount: Array.isArray(res.data?.value) ? res.data.value.length : 1
+                    });
+                } catch (err) {
+                    results.push({
+                        name: ep.name,
+                        path: ep.path,
+                        weight: ep.weight,
+                        status: err.response?.status || 500,
+                        durationMs: Date.now() - epStart,
+                        success: false,
+                        error: err.response?.data?.error?.message || err.message
+                    });
+                }
+            }
+
+            this.totalCycles++;
+            this.lastRunTime = new Date().toISOString();
+            this.nextRunTime = new Date(Date.now() + this.intervalMinutes * 60 * 1000).toISOString();
+
+            const cycleRecord = {
+                id: cycleId,
+                timestamp: this.lastRunTime,
+                triggeredBy,
+                totalEndpoints: this.targetEndpoints.length,
+                successCount: results.filter(r => r.success).length,
+                totalDurationMs: Date.now() - cycleStart,
+                results
+            };
+
+            this.recentCycles.unshift(cycleRecord);
+            if (this.recentCycles.length > 25) {
+                this.recentCycles.pop();
+            }
+
+            console.log(`[E5 Engine] Cycle complete: ${cycleRecord.successCount}/${cycleRecord.totalEndpoints} successful (${cycleRecord.totalDurationMs}ms). Next run: ${this.nextRunTime}`);
+            return cycleRecord;
+
+        } catch (authErr) {
+            console.error('[E5 Engine] Auth failure during cycle:', authErr.message);
+            throw authErr;
+        }
+    },
+
+    start() {
+        if (!this.enabled) return;
+        console.log(`[E5 Engine] Initialized: Recurring cycle every ${this.intervalMinutes} minutes.`);
+
+        // Schedule first run 5s after boot
+        setTimeout(() => {
+            this.executeCycle('startup_init').catch(e => console.error('[E5 Engine] Startup run error:', e.message));
+        }, 5000);
+
+        // Continuous recurring timer
+        this.nextRunTime = new Date(Date.now() + this.intervalMinutes * 60 * 1000).toISOString();
+        this.timer = setInterval(() => {
+            this.executeCycle('automated_schedule').catch(e => console.error('[E5 Engine] Recurring run error:', e.message));
+        }, this.intervalMinutes * 60 * 1000);
+    }
+};
+
+/**
+ * E5 Engine APIs
+ */
+app.get('/api/e5-engine/status', (req, res) => {
+    res.json({
+        success: true,
+        enabled: E5RenewalEngine.enabled,
+        intervalMinutes: E5RenewalEngine.intervalMinutes,
+        lastRunTime: E5RenewalEngine.lastRunTime,
+        nextRunTime: E5RenewalEngine.nextRunTime,
+        totalCycles: E5RenewalEngine.totalCycles,
+        callsToday: E5RenewalEngine.callsToday,
+        targetEndpoints: E5RenewalEngine.targetEndpoints.map(e => ({ name: e.name, path: e.path, weight: e.weight })),
+        recentCycles: E5RenewalEngine.recentCycles
+    });
+});
+
+app.post('/api/e5-engine/trigger', async (req, res) => {
+    try {
+        const cycle = await E5RenewalEngine.executeCycle('manual_dashboard_trigger');
+        res.json({ success: true, cycle });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// External Cron Ping Endpoint (For UptimeRobot, cron-job.org, Render Keep-Alive, GitHub Actions)
+app.get('/api/keep-alive', async (req, res) => {
+    try {
+        const cycle = await E5RenewalEngine.executeCycle('external_cron_webhook');
+        res.json({
+            success: true,
+            message: 'E5 Keep-Alive renewal cycle executed successfully',
+            timestamp: new Date().toISOString(),
+            successEndpoints: `${cycle.successCount}/${cycle.totalEndpoints}`,
+            durationMs: cycle.totalDurationMs
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+/**
  * Health & configuration probe
  */
 app.get('/api/config-status', (req, res) => {
@@ -251,4 +415,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`[M365 Monitor] Server running on port ${PORT}`);
+    // Boot the automated E5 renewal keep-alive engine
+    E5RenewalEngine.start();
 });
+

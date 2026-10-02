@@ -65,6 +65,53 @@
             </div>
         </header>
 
+        <!-- E5 Developer Auto-Renewal Keep-Alive Banner (Apple Card Style) -->
+        <section class="sf-e5-banner" aria-label="E5 Developer Subscription Keep-Alive Status">
+            <div class="sf-e5-left">
+                <div class="sf-e5-status-icon">
+                    <span class="sf-pulse-dot"></span>
+                </div>
+                <div class="sf-e5-info">
+                    <div class="sf-e5-title-row">
+                        <span class="sf-e5-title">E5 Developer Auto-Renewal Engine</span>
+                        <span class="sf-badge e5-active" id="e5StatusBadge">Active (Continuous)</span>
+                    </div>
+                    <p class="sf-e5-sub">
+                        Automated Keep-Alive cycles calling Microsoft Graph across 7 services simulating active developer workloads to guarantee 90-day subscription renewals.
+                    </p>
+                </div>
+            </div>
+
+            <div class="sf-e5-metrics">
+                <div class="sf-e5-stat">
+                    <span class="sf-e5-stat-label">Calls Today</span>
+                    <span class="sf-e5-stat-value" id="e5CallsToday">0</span>
+                </div>
+                <div class="sf-e5-divider"></div>
+                <div class="sf-e5-stat">
+                    <span class="sf-e5-stat-label">Next Scheduled Pulse</span>
+                    <span class="sf-e5-stat-value" id="e5NextRun">Calculating...</span>
+                </div>
+                <div class="sf-e5-divider"></div>
+                <div class="sf-e5-stat">
+                    <span class="sf-e5-stat-label">Last Status</span>
+                    <span class="sf-e5-stat-value success" id="e5LastStatus">Standby</span>
+                </div>
+            </div>
+
+            <div class="sf-e5-actions">
+                <button type="button" class="sf-btn-primary-compact" id="btnTriggerKeepAlive" title="Execute a live Microsoft Graph API keep-alive cycle now">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Run Cycle Now</span>
+                </button>
+                <button type="button" class="sf-btn-secondary-compact" id="btnViewE5Logs" title="View detailed keep-alive execution history">
+                    <span>Telemetry Log</span>
+                </button>
+            </div>
+        </section>
+
         <!-- KPI Metrics Grid (Apple Card Design) -->
         <section class="sf-metrics-grid" aria-label="Key Performance Indicators" id="metricsSection">
             <!-- Dynamically populated via app.js -->
@@ -166,6 +213,27 @@
                 </button>
             </header>
             <div class="sf-modal-body" id="modalDetailsContainer">
+                <!-- Dynamically populated via app.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- E5 Telemetry & Renewal Log Modal -->
+    <div id="e5Modal" class="sf-modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="e5ModalTitle">
+        <div class="sf-modal-card">
+            <header class="sf-modal-header">
+                <div>
+                    <h3 id="e5ModalTitle" class="sf-modal-title">E5 Developer Renewal Telemetry</h3>
+                    <p class="sf-modal-sub">Live audit trail of automated Graph API keep-alive cycles</p>
+                </div>
+                <button type="button" class="sf-modal-close" id="e5ModalCloseBtn" aria-label="Close dialog">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </header>
+            <div class="sf-modal-body" id="e5ModalBody">
                 <!-- Dynamically populated via app.js -->
             </div>
         </div>

@@ -312,6 +312,208 @@ body {
 }
 
 /* ==========================================================================
+   E5 Developer Renewal Keep-Alive Banner (Apple HIG Card)
+   ========================================================================== */
+.sf-e5-banner {
+    background: var(--sf-surface);
+    border: 1px solid rgba(0, 113, 227, 0.16);
+    border-radius: var(--sf-radius-lg);
+    padding: 18px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.04), var(--sf-shadow-sm);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 249, 255, 0.8));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.sf-e5-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 2;
+    min-width: 280px;
+}
+
+.sf-e5-status-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(52, 199, 89, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.sf-pulse-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #34c759;
+    box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.6);
+    animation: sf-pulse 2s infinite;
+}
+
+@keyframes sf-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(52, 199, 89, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);
+    }
+}
+
+.sf-e5-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.sf-e5-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sf-e5-title {
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: var(--sf-label-primary);
+    letter-spacing: -0.01em;
+}
+
+.sf-badge.e5-active {
+    background: rgba(52, 199, 89, 0.12);
+    color: #248a3d;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--sf-radius-pill);
+    border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+.sf-e5-sub {
+    font-size: 0.78rem;
+    color: var(--sf-label-secondary);
+    margin-top: 3px;
+    line-height: 1.35;
+}
+
+.sf-e5-metrics {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 18px;
+    background: var(--sf-fill-quaternary);
+    border-radius: var(--sf-radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.sf-e5-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.sf-e5-stat-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    color: var(--sf-label-tertiary);
+}
+
+.sf-e5-stat-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sf-label-primary);
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+}
+
+.sf-e5-stat-value.success {
+    color: #248a3d;
+}
+
+.sf-e5-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--sf-border);
+}
+
+.sf-e5-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sf-btn-primary-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: var(--sf-blue);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--sf-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s var(--sf-ease);
+    box-shadow: 0 1px 3px rgba(0, 113, 227, 0.3);
+}
+
+.sf-btn-primary-compact:hover {
+    background: #0077ed;
+    box-shadow: 0 2px 6px rgba(0, 113, 227, 0.4);
+    transform: translateY(-0.5px);
+}
+
+.sf-btn-secondary-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: var(--sf-surface);
+    color: var(--sf-label-primary);
+    border: 1px solid var(--sf-border);
+    border-radius: var(--sf-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s var(--sf-ease);
+    box-shadow: var(--sf-shadow-sm);
+}
+
+.sf-btn-secondary-compact:hover {
+    background: var(--sf-fill-quaternary);
+    border-color: var(--sf-border-strong);
+}
+
+@media (max-width: 980px) {
+    .sf-e5-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .sf-e5-metrics {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .sf-e5-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* ==========================================================================
    KPI Metrics Grid (Apple Card Style)
    ========================================================================== */
 .sf-metrics-grid {

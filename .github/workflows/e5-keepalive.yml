@@ -1,0 +1,23 @@
+name: Microsoft 365 E5 Keep-Alive & Auto-Renewal
+
+on:
+  schedule:
+    # Runs every 4 hours automatically (UTC)
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  keepalive:
+    name: Ping Dashboard & Trigger Graph API Renewal Cycle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Keep-Alive Pulse
+        env:
+          DASHBOARD_URL: ${{ secrets.DEPLOYED_APP_URL }}
+        run: |
+          if [ -z "$DASHBOARD_URL" ]; then
+            echo "::warning ::DEPLOYED_APP_URL secret is not set yet. Once deployed on Render/Vercel, add your app URL in GitHub Repo Settings -> Secrets."
+            exit 0
+          fi
+          echo "Pinging E5 Renewal endpoint: ${DASHBOARD_URL}/api/keep-alive"
+          curl -s -f -m 30 "${DASHBOARD_URL}/api/keep-alive" || echo "Ping failed or server waking up."
